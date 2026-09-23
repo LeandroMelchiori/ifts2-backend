@@ -1,10 +1,14 @@
 # IFTS N. 2 - Backend institucional
 
 API REST del CMS institucional con autenticacion JWT, administracion de usuarios
-ADMIN/EDITOR, noticias y almacenamiento desacoplado con Supabase Storage.
+ADMIN/EDITOR, noticias, eventos, documentos, carreras, autoridades, enlaces e
+informacion institucional. El almacenamiento se integra mediante una abstraccion
+propia con un adaptador Supabase disponible.
 La gestion academica corresponde a SIU Guarani. No se implementan Docker, OCI,
-refresh tokens ni microservicios. Noticias es el primer modulo de contenido;
-su contrato y flujo editorial se detallan en [Noticias](docs/noticias.md).
+refresh tokens ni microservicios. Los contratos se detallan en
+[Noticias](docs/noticias.md) y [Modulos institucionales](docs/contenido-institucional.md).
+Los tests funcionan sin servicios externos y el CMS arranca sin storage con
+`STORAGE_PROVIDER=none`; para ejecutar la API fuera de tests se requiere PostgreSQL.
 
 ## Requisitos y versiones
 
@@ -45,11 +49,11 @@ para verificar certificado y hostname usar `sslmode=verify-full` y el certificad
 raiz correspondiente. La persistencia usa PostgreSQL estandar; no utiliza Supabase
 Auth. La integracion HTTP de archivos esta aislada en el modulo de storage.
 
-Flyway aplica `V1__crear_usuarios.sql`, `V2__crear_noticias.sql` y
-`V3__agregar_portada_noticias.sql` desde
+Flyway aplica `V1__crear_usuarios.sql`, `V2__crear_noticias.sql`,
+`V3__agregar_portada_noticias.sql` y `V4__crear_contenido_institucional.sql` desde
 `src/main/resources/db/migration`. Hibernate usa `ddl-auto=validate`: comprueba
 el esquema pero no lo crea ni modifica. Para cambios posteriores agregar nuevas
-migraciones a partir de `V4__...sql`, sin editar las ya aplicadas.
+migraciones a partir de `V5__...sql`, sin editar las ya aplicadas.
 
 ## Configuracion
 
@@ -173,6 +177,23 @@ En equipos con Maven instalado tambien se puede usar `mvn clean verify`.
 
 ## Endpoints
 
+Ademas de Noticias, las colecciones `eventos`, `carreras`, `autoridades`,
+`enlaces` y `documentos` tienen GET publico de listado/detalle y GET/POST/PUT
+administrativos bajo `/api/admin/{coleccion}`. Publicar/retirar/archivar usa
+`PUT /api/admin/{coleccion}/{id}/estado`. ADMIN y EDITOR pueden administrarlas;
+las lecturas publicas incluyen exclusivamente PUBLICADA.
+
+Institucion usa GET publico en `/api/institucion`, GET/PUT administrativo en
+`/api/admin/institucion` y PUT de `/estado`; existe un unico registro, inicialmente
+ausente. Eventos valida fechas; Enlaces valida URLs HTTPS; Documentos necesita PDF
+para publicar. Requests, filtros, limites y ejemplos completos:
+[Modulos institucionales](docs/contenido-institucional.md).
+
+Imagenes y documentos usan PUT multipart con parte `file` y DELETE en:
+`/api/admin/eventos/{id}/portada`, `/api/admin/carreras/{id}/imagen`,
+`/api/admin/autoridades/{id}/foto`, `/api/admin/documentos/{id}/archivo`.
+Estas rutas son permanentes y no requieren habilitar los endpoints temporales.
+
 | Metodo | Ruta | Acceso |
 | --- | --- | --- |
 | GET | `/api/health` | Publico, devuelve `{"status":"UP"}` |
@@ -220,8 +241,11 @@ La respuesta de login tiene `accessToken`, `tokenType` (`Bearer`) y `expiresIn`
 el `accessToken`. Swagger agrega el prefijo `Bearer`. Los endpoints temporales
 permiten comprobar ambos niveles de permisos y se podran quitar mas adelante.
 
-OpenAPI agrupa los contratos en `Authentication`, `Users`, `Storage` y `System`.
-Los endpoints de storage aparecen solo al habilitar las pruebas de storage.
+OpenAPI agrupa autenticacion, usuarios, sistema y cada modulo de contenido;
+los contratos administrativos indican Bearer JWT.
+Los endpoints temporales de storage aparecen solo al habilitar sus pruebas.
+Las rutas de archivos de los modulos siempre se documentan; sin proveedor
+configurado responden 503 al intentar subir archivos.
 
 ## Administracion de usuarios
 
@@ -314,7 +338,7 @@ Para verificar desde Swagger:
 7. Deshabilitar `STORAGE_TEST_ENDPOINTS_ENABLED` y reiniciar al finalizar.
 
 Estos endpoints son temporales y solo trabajan bajo `pruebas/`. No permiten
-subir o borrar objetos de los futuros modulos del CMS. El nombre original se
+subir o borrar objetos de los modulos del CMS. El nombre original se
 ignora; las claves se generan como `pruebas/{uuid}.extension`. No se aceptan rutas
 absolutas, `..`, barras invertidas, URLs ni segmentos codificados como identidad.
 
@@ -354,8 +378,8 @@ hacia la interfaz. La seleccion se hace por `app.storage.provider`, sin plugins
 dinamicos. `none` deja el storage deshabilitado; `supabase` activa la implementacion.
 
 La identidad es una clave como `noticias/{uuid}.webp` o `documentos/{uuid}.pdf`;
-Noticias ya usa ese namespace para su portada opcional; los otros siguen disponibles
-para futuros modulos. Las portadas aceptan JPEG/PNG/WEBP y usan el limite de imagenes.
+Noticias, Eventos, Carreras y Autoridades usan sus namespaces para imagenes
+JPEG/PNG/WEBP. Documentos usa `documentos/` exclusivamente para PDF.
 No se almacenan archivos en PostgreSQL ni URLs completas como identidad persistente.
 Noticias persiste solo `portadaObjectKey` y deriva `portadaUrl` a traves de
 `StorageService`. Upload y borrado requieren storage configurado; las lecturas
@@ -433,6 +457,7 @@ src/main/java/ar/edu/ifts2/
     JwtConfig.java, JwtProperties.java, JwtService.java
     UsuarioJwtAuthenticationConverter.java
   storage/
+    ArchivoStorageService.java
     StorageService.java, StorageException.java
     model/StoredFile.java
     config/StorageConfig.java, StorageProperties.java
@@ -442,6 +467,8 @@ src/main/java/ar/edu/ifts2/
     controller/StorageTestController.java
     dto/StorageUploadResponse.java, StorageUrlResponse.java
   config/OpenApiConfig.java
+  evento/, carrera/, autoridad/, enlace/, documento/, institucion/
+    controller/, service/, repository/, entity/, dto/
   noticia/
     controller/NoticiaAdminController.java, NoticiaPublicaController.java
     controller/NoticiaPortadaController.java
@@ -452,6 +479,9 @@ src/main/java/ar/edu/ifts2/
     dto/NoticiaAdminResponse.java, NoticiaPublicaResponse.java, NoticiaResumenResponse.java
     dto/NoticiaPortadaResponse.java
   shared/
+    entity/ContenidoEditorial.java, EstadoPublicacion.java
+    dto/CambiarEstadoRequest.java
+    validation/HttpsUrl.java, HttpsUrlValidator.java
     controller/ProbeController.java
     dto/StatusResponse.java, PageResponse.java
     error/ApiError.java, GlobalExceptionHandler.java, ApiErrorController.java
@@ -461,7 +491,9 @@ src/main/resources/
   db/migration/V1__crear_usuarios.sql
   db/migration/V2__crear_noticias.sql
   db/migration/V3__agregar_portada_noticias.sql
+  db/migration/V4__crear_contenido_institucional.sql
 src/test/java/ar/edu/ifts2/
+  contenido/ContenidoIntegrationTest.java, ContenidoSinStorageIntegrationTest.java
   auth/AuthSecurityIntegrationTest.java
   security/JwtConfigTest.java
   usuario/UsuarioIntegrationTest.java
@@ -522,3 +554,12 @@ Las pruebas de portadas cubren permisos, MIME/firma y limite de imagenes,
 reemplazo y borrado, compensacion por rollback/fallo de commit, limpieza fallida,
 URLs derivadas, concurrencia y funcionamiento sin proveedor configurado. No se
 agregan dependencias ni variables de entorno para esta funcionalidad.
+
+Los seis modulos institucionales se prueban con el mismo PostgreSQL temporal:
+ciclo editorial por ambos roles, fechas, URLs, orden, filtros, permisos, instancia
+unica de Institucion, reglas PDF, compensacion de archivos, modo sin proveedor,
+OpenAPI y migracion desde V3 conservando Noticias. `ArchivoStorageService`
+centraliza la coordinacion de archivos que antes estaba dentro de Noticias.
+
+Para las pruebas reales pendientes con Supabase/OCI y los limites deliberados de
+esta version ver [Pendiente de integracion](docs/contenido-institucional.md#pendiente-de-integracion).

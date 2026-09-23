@@ -81,6 +81,13 @@ class NoticiaIntegrationTest extends PostgresIntegrationTest {
         Usuario inactive = new Usuario("Inactive", "Test", "inactive@example.test", hash, Rol.EDITOR);
         inactive.desactivar();
         usuarios.saveAndFlush(inactive);
+    }
+
+    @BeforeEach
+    void refreshTokens() {
+        Usuario admin = usuarios.findByEmail("admin@example.test").orElseThrow();
+        Usuario editor = usuarios.findByEmail("editor@example.test").orElseThrow();
+        Usuario inactive = usuarios.findByEmail("inactive@example.test").orElseThrow();
         adminToken = jwtService.issue(admin.getId(), admin.getRol()).accessToken();
         editorToken = jwtService.issue(editor.getId(), editor.getRol()).accessToken();
         inactiveToken = jwtService.issue(inactive.getId(), inactive.getRol()).accessToken();

@@ -107,6 +107,13 @@ class NoticiaPortadaIntegrationTest extends PostgresIntegrationTest {
         Usuario inactive = new Usuario("Inactive", "Test", "inactive@example.test", hash, Rol.EDITOR);
         inactive.desactivar();
         usuarios.saveAndFlush(inactive);
+    }
+
+    @BeforeEach
+    void refreshTokens() {
+        Usuario admin = usuarios.findByEmail("admin@example.test").orElseThrow();
+        Usuario editor = usuarios.findByEmail("editor@example.test").orElseThrow();
+        Usuario inactive = usuarios.findByEmail("inactive@example.test").orElseThrow();
         adminToken = jwtService.issue(admin.getId(), admin.getRol()).accessToken();
         editorToken = jwtService.issue(editor.getId(), editor.getRol()).accessToken();
         inactiveToken = jwtService.issue(inactive.getId(), inactive.getRol()).accessToken();
@@ -331,7 +338,7 @@ class NoticiaPortadaIntegrationTest extends PostgresIntegrationTest {
         String currentKey = repository.findById(id).orElseThrow().getPortadaObjectKey();
         assertThat(currentKey).isNotEqualTo(oldKey);
         assertThat(objects).containsKeys(oldKey, currentKey);
-        assertThat(output).contains("Limpieza pendiente de portada", oldKey).doesNotContain("provider-secret-should-not-be-logged");
+        assertThat(output).contains("Limpieza pendiente de archivo", oldKey).doesNotContain("provider-secret-should-not-be-logged");
     }
 
     @Test
@@ -342,7 +349,7 @@ class NoticiaPortadaIntegrationTest extends PostgresIntegrationTest {
         doThrow(new StorageException(StorageException.Reason.PROVIDER_FAILURE)).when(storage).delete(key);
         mvc.perform(delete(PATH, id).header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken)).andExpect(status().isNoContent());
         assertThat(repository.findById(id).orElseThrow().getPortadaObjectKey()).isNull();
-        assertThat(output).contains("Limpieza pendiente de portada", key);
+        assertThat(output).contains("Limpieza pendiente de archivo", key);
     }
 
     @Test

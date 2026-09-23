@@ -112,7 +112,7 @@ Los cambios de texto, publicacion o archivado conservan la portada existente.
 
 PostgreSQL y storage no comparten una transaccion atomica. Si falla el borrado
 posterior al commit, la operacion HTTP sigue siendo exitosa y se registra
-`Limpieza pendiente de portada` con la clave y el tipo de fallo, sin mensajes
+`Limpieza pendiente de archivo` con la clave y el tipo de fallo, sin mensajes
 internos del proveedor. Revisar esas claves contra `noticias.portada_object_key`
 antes de eliminarlas manualmente. No hay cola persistente ni reintentos automaticos.
 Una caida del proceso entre upload y commit/limpieza, un resultado SQL incierto,
