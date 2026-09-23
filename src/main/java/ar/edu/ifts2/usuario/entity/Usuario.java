@@ -84,4 +84,16 @@ public class Usuario {
     public void desactivar() {
         activo = false;
     }
+
+    public void actualizar(String nombre, String apellido, String email, Rol rol, boolean activo) {
+        this.nombre = nombre.strip();
+        this.apellido = apellido.strip();
+        this.email = email.strip().toLowerCase(Locale.ROOT);
+        this.rol = rol;
+        this.activo = activo;
+    }
+
+    public void cambiarPasswordHash(String passwordHash) {
+        this.passwordHash = passwordHash;
+    }
 }

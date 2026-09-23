@@ -13,7 +13,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.nio.charset.StandardCharsets;
+import ar.edu.ifts2.usuario.validation.PasswordPolicy;
 
 @Component
 @ConditionalOnProperty(prefix = "app.bootstrap-admin", name = "enabled", havingValue = "true")
@@ -40,8 +40,7 @@ public class BootstrapAdminInitializer implements ApplicationRunner {
         }
         String password = properties.password();
         // Validacion manual para que un error de binding nunca imprima el valor de la password.
-        if (password == null || password.isBlank() || password.length() < 12
-                || password.getBytes(StandardCharsets.UTF_8).length > 72) {
+        if (!PasswordPolicy.isValidNewPassword(password)) {
             throw new IllegalStateException("BOOTSTRAP_ADMIN_PASSWORD debe tener al menos 12 caracteres y hasta 72 bytes UTF-8");
         }
         repository.save(new Usuario(properties.nombre(), properties.apellido(), properties.email(),

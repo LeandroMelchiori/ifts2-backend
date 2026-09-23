@@ -9,20 +9,13 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
-import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.security.web.SecurityFilterChain;
 
 @Configuration(proxyBeanMethods = false)
 public class SecurityConfig {
     @Bean
-    SecurityFilterChain securityFilterChain(HttpSecurity http, SecurityErrorHandler errors) throws Exception {
-        JwtGrantedAuthoritiesConverter authorities = new JwtGrantedAuthoritiesConverter();
-        authorities.setAuthoritiesClaimName("role");
-        authorities.setAuthorityPrefix("ROLE_");
-        JwtAuthenticationConverter authentication = new JwtAuthenticationConverter();
-        authentication.setJwtGrantedAuthoritiesConverter(authorities);
-
+    SecurityFilterChain securityFilterChain(HttpSecurity http, SecurityErrorHandler errors,
+                                           UsuarioJwtAuthenticationConverter authentication) throws Exception {
         return http
                 // El token se envia exclusivamente por Authorization; no se autentica con cookies.
                 .csrf(AbstractHttpConfigurer::disable)

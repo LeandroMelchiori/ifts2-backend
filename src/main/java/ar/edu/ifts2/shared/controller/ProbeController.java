@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@Tag(name = "Verificacion")
+@Tag(name = "System")
 public class ProbeController {
     @GetMapping("/api/health")
     @Operation(summary = "Verificar que la API responde")

@@ -18,5 +18,3 @@ application-local.*
 application-secrets.*
 credentials.*
 /secrets/
-AGENTS.md
-agents.md

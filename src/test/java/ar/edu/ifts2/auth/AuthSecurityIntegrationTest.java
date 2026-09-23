@@ -7,7 +7,7 @@ import ar.edu.ifts2.usuario.entity.Usuario;
 import ar.edu.ifts2.usuario.repository.UsuarioRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.zonky.test.db.postgres.embedded.EmbeddedPostgres;
+import ar.edu.ifts2.support.PostgresIntegrationTest;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -15,11 +15,6 @@ import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Import;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -31,17 +26,10 @@ import org.springframework.security.oauth2.jwt.JwtClaimsSet;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
-import org.springframework.test.annotation.DirtiesContext;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
-import javax.sql.DataSource;
-import java.io.IOException;
-import java.security.SecureRandom;
 import java.time.Instant;
-import java.util.Base64;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -50,21 +38,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@SpringBootTest(properties = {
-        "spring.datasource.url=jdbc:postgresql://localhost/unused",
-        "spring.datasource.username=unused",
-        "spring.datasource.password=",
-        "app.bootstrap-admin.enabled=false",
-        "app.jwt.issuer=ifts2-test",
-        "app.jwt.access-token-ttl=15m",
-        "springdoc.api-docs.enabled=true",
-        "springdoc.swagger-ui.enabled=true"
-})
-@AutoConfigureMockMvc
-@Import(AuthSecurityIntegrationTest.DatabaseConfiguration.class)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
-class AuthSecurityIntegrationTest {
+class AuthSecurityIntegrationTest extends PostgresIntegrationTest {
     private final MockMvc mvc;
     private final ObjectMapper mapper;
     private final UsuarioRepository repository;
@@ -89,14 +64,6 @@ class AuthSecurityIntegrationTest {
         this.encoder = encoder;
         this.properties = properties;
         this.flyway = flyway;
-    }
-
-    @DynamicPropertySource
-    static void jwtSecret(DynamicPropertyRegistry registry) {
-        byte[] secret = new byte[32];
-        new SecureRandom().nextBytes(secret);
-        String encoded = Base64.getEncoder().encodeToString(secret);
-        registry.add("app.jwt.secret", () -> encoded);
     }
 
     @BeforeAll
@@ -341,16 +308,4 @@ class AuthSecurityIntegrationTest {
                 .andExpect(jsonPath("$.trace").doesNotExist());
     }
 
-    @TestConfiguration(proxyBeanMethods = false)
-    static class DatabaseConfiguration {
-        @Bean(destroyMethod = "close")
-        EmbeddedPostgres postgres() throws IOException {
-            return EmbeddedPostgres.builder().setPort(0).start();
-        }
-
-        @Bean
-        DataSource dataSource(EmbeddedPostgres postgres) {
-            return postgres.getPostgresDatabase();
-        }
-    }
 }

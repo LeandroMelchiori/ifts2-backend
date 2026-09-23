@@ -10,7 +10,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.nio.charset.StandardCharsets;
+import ar.edu.ifts2.usuario.validation.PasswordPolicy;
 import java.util.UUID;
 
 @Service
@@ -31,7 +31,7 @@ public class AuthService {
     @Transactional(readOnly = true)
     public LoginResponse login(LoginRequest request) {
         // BCrypt limita por bytes, no por caracteres; nunca aceptar truncamiento.
-        if (request.password().getBytes(StandardCharsets.UTF_8).length > 72) {
+        if (!PasswordPolicy.isWithinBcryptLimit(request.password())) {
             throw invalidCredentials();
         }
         Usuario usuario = usuarioRepository.findByEmail(request.email()).orElse(null);

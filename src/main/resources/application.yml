@@ -1,6 +1,13 @@
 spring:
   application:
     name: ifts2-backend
+  jackson:
+    deserialization:
+      fail-on-unknown-properties: true
+  servlet:
+    multipart:
+      max-file-size: ${STORAGE_MAX_FILE_SIZE:10MB}
+      max-request-size: ${STORAGE_MAX_REQUEST_SIZE:11MB}
   datasource:
     url: ${DB_URL}
     username: ${DB_USERNAME}
@@ -26,6 +33,17 @@ server:
     include-exception: false
 
 app:
+  storage:
+    provider: ${STORAGE_PROVIDER:none}
+    test-endpoints-enabled: ${STORAGE_TEST_ENDPOINTS_ENABLED:false}
+    max-image-size: ${STORAGE_MAX_IMAGE_SIZE:5MB}
+    max-document-size: ${STORAGE_MAX_DOCUMENT_SIZE:10MB}
+    supabase:
+      url: ${SUPABASE_URL:}
+      bucket: ${SUPABASE_STORAGE_BUCKET:}
+      service-role-key: ${SUPABASE_SERVICE_ROLE_KEY:}
+      connect-timeout: ${STORAGE_CONNECT_TIMEOUT:5s}
+      read-timeout: ${STORAGE_READ_TIMEOUT:15s}
   jwt:
     secret: ${JWT_SECRET}
     issuer: ${JWT_ISSUER:ifts2-backend}
