@@ -95,6 +95,7 @@ class StorageEndpointIntegrationTest extends PostgresIntegrationTest {
             case UNSUPPORTED_TYPE -> 415;
             case NOT_FOUND -> 404;
             case PROVIDER_FAILURE -> 502;
+            case STORAGE_DISABLED -> 503;
         };
         mvc.perform(multipart("/api/admin/storage/test").file(file()).with(user("editor").roles("EDITOR")))
                 .andExpect(status().is(expected)).andExpect(jsonPath("$.status").value(expected))

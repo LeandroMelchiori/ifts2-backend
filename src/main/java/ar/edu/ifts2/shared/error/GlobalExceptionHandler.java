@@ -90,6 +90,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
             case UNSUPPORTED_TYPE -> HttpStatus.UNSUPPORTED_MEDIA_TYPE;
             case NOT_FOUND -> HttpStatus.NOT_FOUND;
             case PROVIDER_FAILURE -> HttpStatus.BAD_GATEWAY;
+            case STORAGE_DISABLED -> HttpStatus.SERVICE_UNAVAILABLE;
         };
         return response(status, ex.getMessage(), request);
     }

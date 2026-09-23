@@ -1,7 +1,7 @@
 package ar.edu.ifts2.storage;
 
 public class StorageException extends RuntimeException {
-    public enum Reason { INVALID_FILE, TOO_LARGE, UNSUPPORTED_TYPE, NOT_FOUND, PROVIDER_FAILURE }
+    public enum Reason { INVALID_FILE, TOO_LARGE, UNSUPPORTED_TYPE, NOT_FOUND, PROVIDER_FAILURE, STORAGE_DISABLED }
     private final Reason reason;
 
     public StorageException(Reason reason) {
@@ -11,6 +11,7 @@ public class StorageException extends RuntimeException {
             case UNSUPPORTED_TYPE -> "Tipo MIME no permitido";
             case NOT_FOUND -> "Objeto no encontrado";
             case PROVIDER_FAILURE -> "No se pudo completar la operacion de almacenamiento";
+            case STORAGE_DISABLED -> "El almacenamiento de archivos no esta habilitado";
         });
         this.reason = reason;
     }

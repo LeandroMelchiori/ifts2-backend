@@ -29,6 +29,9 @@ public class Noticia {
     @Column(nullable = false, columnDefinition = "text")
     private String contenido;
 
+    @Column(name = "portada_object_key", length = 255, unique = true)
+    private String portadaObjectKey;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private EstadoNoticia estado = EstadoNoticia.BORRADOR;
@@ -75,6 +78,8 @@ public class Noticia {
     public String getTitulo() { return titulo; }
     public String getResumen() { return resumen; }
     public String getContenido() { return contenido; }
+    public String getPortadaObjectKey() { return portadaObjectKey; }
+    public void cambiarPortada(String objectKey) { portadaObjectKey = objectKey; }
     public EstadoNoticia getEstado() { return estado; }
     public Instant getPublicadaAt() { return publicadaAt; }
     public Instant getCreatedAt() { return createdAt; }

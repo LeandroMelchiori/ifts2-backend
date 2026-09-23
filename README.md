@@ -45,10 +45,11 @@ para verificar certificado y hostname usar `sslmode=verify-full` y el certificad
 raiz correspondiente. La persistencia usa PostgreSQL estandar; no utiliza Supabase
 Auth. La integracion HTTP de archivos esta aislada en el modulo de storage.
 
-Flyway aplica `V1__crear_usuarios.sql` y `V2__crear_noticias.sql` desde
+Flyway aplica `V1__crear_usuarios.sql`, `V2__crear_noticias.sql` y
+`V3__agregar_portada_noticias.sql` desde
 `src/main/resources/db/migration`. Hibernate usa `ddl-auto=validate`: comprueba
 el esquema pero no lo crea ni modifica. Para cambios posteriores agregar nuevas
-migraciones a partir de `V3__...sql`, sin editar las ya aplicadas.
+migraciones a partir de `V4__...sql`, sin editar las ya aplicadas.
 
 ## Configuracion
 
@@ -190,6 +191,8 @@ En equipos con Maven instalado tambien se puede usar `mvn clean verify`.
 | POST | `/api/admin/noticias` | ADMIN/EDITOR; crear borrador |
 | PUT | `/api/admin/noticias/{id}` | ADMIN/EDITOR; reemplazar titulo, resumen y contenido |
 | PUT | `/api/admin/noticias/{id}/estado` | ADMIN/EDITOR; publicar, retirar o archivar |
+| PUT | `/api/admin/noticias/{id}/portada` | ADMIN/EDITOR; multipart `file`, subir/reemplazar imagen |
+| DELETE | `/api/admin/noticias/{id}/portada` | ADMIN/EDITOR; quitar portada |
 | POST | `/api/admin/storage/test` | Temporal y optativo; ADMIN o EDITOR; multipart |
 | DELETE | `/api/admin/storage/test?objectKey=...` | Temporal y optativo; ADMIN o EDITOR |
 | GET | `/api/admin/storage/test/url?objectKey=...` | Temporal y optativo; ADMIN o EDITOR |
@@ -351,10 +354,15 @@ hacia la interfaz. La seleccion se hace por `app.storage.provider`, sin plugins
 dinamicos. `none` deja el storage deshabilitado; `supabase` activa la implementacion.
 
 La identidad es una clave como `noticias/{uuid}.webp` o `documentos/{uuid}.pdf`;
-esos namespaces estan soportados por el contrato; Noticias todavia no tiene adjuntos.
+Noticias ya usa ese namespace para su portada opcional; los otros siguen disponibles
+para futuros modulos. Las portadas aceptan JPEG/PNG/WEBP y usan el limite de imagenes.
 No se almacenan archivos en PostgreSQL ni URLs completas como identidad persistente.
-Cuando se agreguen archivos a los modulos de contenido, sus entidades guardaran `objectKey` y
-resolveran la URL a traves de `StorageService`.
+Noticias persiste solo `portadaObjectKey` y deriva `portadaUrl` a traves de
+`StorageService`. Upload y borrado requieren storage configurado; las lecturas
+siguen funcionando con `none` (URL null). Las operaciones de portada funcionan
+sin habilitar `STORAGE_TEST_ENDPOINTS_ENABLED`. Ver [Noticias](docs/noticias.md)
+para las reglas de reemplazo, compensacion, limpieza manual y visibilidad de URLs
+en un bucket publico.
 
 Para migrar posteriormente a OCI bastara con implementar el mismo contrato,
 configurar ese proveedor y transferir los objetos conservando sus claves. No
@@ -436,11 +444,13 @@ src/main/java/ar/edu/ifts2/
   config/OpenApiConfig.java
   noticia/
     controller/NoticiaAdminController.java, NoticiaPublicaController.java
-    service/NoticiaService.java
+    controller/NoticiaPortadaController.java
+    service/NoticiaService.java, NoticiaPortadaService.java
     repository/NoticiaRepository.java
     entity/Noticia.java, EstadoNoticia.java
     dto/NoticiaRequest.java, CambiarEstadoNoticiaRequest.java
     dto/NoticiaAdminResponse.java, NoticiaPublicaResponse.java, NoticiaResumenResponse.java
+    dto/NoticiaPortadaResponse.java
   shared/
     controller/ProbeController.java
     dto/StatusResponse.java, PageResponse.java
@@ -450,11 +460,13 @@ src/main/resources/
   application.yml
   db/migration/V1__crear_usuarios.sql
   db/migration/V2__crear_noticias.sql
+  db/migration/V3__agregar_portada_noticias.sql
 src/test/java/ar/edu/ifts2/
   auth/AuthSecurityIntegrationTest.java
   security/JwtConfigTest.java
   usuario/UsuarioIntegrationTest.java
   noticia/NoticiaIntegrationTest.java
+  noticia/NoticiaPortadaIntegrationTest.java
   usuario/service/BootstrapAdminInitializerTest.java
   shared/error/GlobalExceptionHandlerTest.java
   storage/FileValidatorTest.java, SupabaseStorageServiceTest.java
@@ -505,3 +517,8 @@ Noticias agrega pruebas de creacion/edicion por ambos roles, publicacion y retir
 archivado reversible, aislamiento de borradores en consultas publicas, paginacion,
 validaciones, restricciones SQL, concurrencia entre edicion y cambio de estado y
 documentacion OpenAPI. Funciona tambien con `STORAGE_PROVIDER=none`.
+
+Las pruebas de portadas cubren permisos, MIME/firma y limite de imagenes,
+reemplazo y borrado, compensacion por rollback/fallo de commit, limpieza fallida,
+URLs derivadas, concurrencia y funcionamiento sin proveedor configurado. No se
+agregan dependencias ni variables de entorno para esta funcionalidad.

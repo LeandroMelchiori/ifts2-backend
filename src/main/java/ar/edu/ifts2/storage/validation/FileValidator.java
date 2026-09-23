@@ -50,6 +50,14 @@ public class FileValidator {
         if (objectKey == null || !KEY.matcher(objectKey).matches()) throw new StorageException(INVALID_FILE);
     }
 
+    public ValidatedFile validateImage(String namespace, String contentType, long size, InputStream content) {
+        String mime = contentType == null ? "" : contentType.toLowerCase(Locale.ROOT).strip();
+        if (!mime.equals("image/jpeg") && !mime.equals("image/png") && !mime.equals("image/webp")) {
+            throw new StorageException(UNSUPPORTED_TYPE);
+        }
+        return validate(namespace, mime, size, content);
+    }
+
     private boolean matchesSignature(String mime, byte[] bytes) {
         return switch (mime) {
             case "image/jpeg" -> bytes.length >= 3 && (bytes[0] & 255) == 255

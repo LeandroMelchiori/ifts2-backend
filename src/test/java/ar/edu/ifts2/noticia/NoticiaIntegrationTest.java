@@ -290,7 +290,7 @@ class NoticiaIntegrationTest extends PostgresIntegrationTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"estado", "publicadaAt", "id", "createdAt", "updatedAt", "imagenObjectKey"})
+    @ValueSource(strings = {"estado", "publicadaAt", "id", "createdAt", "updatedAt", "imagenObjectKey", "portadaObjectKey", "portadaUrl"})
     void contentRequestsRejectServerManagedAndUnsupportedFields(String field) throws Exception {
         UUID id = seed("Original", EstadoNoticia.BORRADOR).getId();
         var request = mapper.createObjectNode().put("titulo", "Titulo").put("resumen", "Resumen").put("contenido", "Contenido");
@@ -366,6 +366,27 @@ class NoticiaIntegrationTest extends PostgresIntegrationTest {
         assertThat(spec.at("/components/schemas/NoticiaRequest/properties/titulo/maxLength").asInt()).isEqualTo(200);
         assertThat(spec.at("/components/schemas/NoticiaRequest/properties/estado").isMissingNode()).isTrue();
         assertThat(spec.at("/components/schemas/NoticiaPublicaResponse/properties/estado").isMissingNode()).isTrue();
+    }
+
+    @Test
+    void disabledStorageKeepsNewsReadableAndRejectsCoverWritesClearly() throws Exception {
+        Noticia noticia = seed("Publicada", EstadoNoticia.PUBLICADA);
+        String key = "noticias/" + UUID.randomUUID() + ".png";
+        noticia.cambiarPortada(key);
+        repository.saveAndFlush(noticia);
+        mvc.perform(get("/api/noticias/{id}", noticia.getId())).andExpect(status().isOk())
+                .andExpect(jsonPath("$.portadaUrl").isEmpty());
+        mvc.perform(authorized(get(ADMIN_PATH + "/{id}", noticia.getId()), adminToken))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.portadaObjectKey").value(key));
+        var file = new org.springframework.mock.web.MockMultipartFile("file", "image.png", "image/png", new byte[]{1});
+        mvc.perform(authorized(multipart(org.springframework.http.HttpMethod.PUT, ADMIN_PATH + "/{id}/portada", noticia.getId()).file(file), editorToken))
+                .andExpect(status().isServiceUnavailable()).andExpect(jsonPath("$.status").value(503));
+        mvc.perform(authorized(delete(ADMIN_PATH + "/{id}/portada", noticia.getId()), editorToken))
+                .andExpect(status().isServiceUnavailable());
+        assertThat(repository.findById(noticia.getId()).orElseThrow().getPortadaObjectKey()).isEqualTo(key);
+        Noticia withoutCover = seed("Sin portada", EstadoNoticia.BORRADOR);
+        mvc.perform(authorized(delete(ADMIN_PATH + "/{id}/portada", withoutCover.getId()), editorToken))
+                .andExpect(status().isNoContent());
     }
 
     private Noticia seed(String titulo, EstadoNoticia estado) {
