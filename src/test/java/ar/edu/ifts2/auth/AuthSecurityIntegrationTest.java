@@ -249,7 +249,8 @@ class AuthSecurityIntegrationTest extends PostgresIntegrationTest {
 
     @Test
     void migrationAndPasswordPersistenceAreCorrect() {
-        assertThat(flyway.info().current().getVersion().getVersion()).isEqualTo("1");
+        assertThat(flyway.info().applied()).anySatisfy(migration ->
+                assertThat(migration.getVersion().getVersion()).isEqualTo("1"));
         Usuario persisted = repository.findById(admin.getId()).orElseThrow();
         assertThat(persisted.getPasswordHash()).startsWith("$2a$12$").isNotEqualTo(password);
         assertThat(passwordEncoder.matches(password, persisted.getPasswordHash())).isTrue();

@@ -1,9 +1,10 @@
 # IFTS N. 2 - Backend institucional
 
 API REST del CMS institucional con autenticacion JWT, administracion de usuarios
-ADMIN/EDITOR y almacenamiento desacoplado con una implementacion de Supabase Storage.
-La gestion academica corresponde a SIU Guarani. Todavia no se implementan modulos
-de contenido, Docker, OCI, refresh tokens ni microservicios.
+ADMIN/EDITOR, noticias y almacenamiento desacoplado con Supabase Storage.
+La gestion academica corresponde a SIU Guarani. No se implementan Docker, OCI,
+refresh tokens ni microservicios. Noticias es el primer modulo de contenido;
+su contrato y flujo editorial se detallan en [Noticias](docs/noticias.md).
 
 ## Requisitos y versiones
 
@@ -44,9 +45,10 @@ para verificar certificado y hostname usar `sslmode=verify-full` y el certificad
 raiz correspondiente. La persistencia usa PostgreSQL estandar; no utiliza Supabase
 Auth. La integracion HTTP de archivos esta aislada en el modulo de storage.
 
-Flyway aplica `src/main/resources/db/migration/V1__crear_usuarios.sql`. Hibernate usa
-`ddl-auto=validate`: comprueba el esquema pero no lo crea ni modifica. Para cambios
-posteriores agregar migraciones `V2__...sql`, sin editar las ya aplicadas.
+Flyway aplica `V1__crear_usuarios.sql` y `V2__crear_noticias.sql` desde
+`src/main/resources/db/migration`. Hibernate usa `ddl-auto=validate`: comprueba
+el esquema pero no lo crea ni modifica. Para cambios posteriores agregar nuevas
+migraciones a partir de `V3__...sql`, sin editar las ya aplicadas.
 
 ## Configuracion
 
@@ -181,6 +183,13 @@ En equipos con Maven instalado tambien se puede usar `mvn clean verify`.
 | POST | `/api/admin/usuarios` | ADMIN; crear usuario activo |
 | PUT | `/api/admin/usuarios/{id}` | ADMIN; actualizar datos y estado |
 | PUT | `/api/admin/usuarios/{id}/password` | ADMIN; restablecer password |
+| GET | `/api/noticias` | Publico; resumenes paginados de noticias publicadas |
+| GET | `/api/noticias/{id}` | Publico; detalle publicado por UUID |
+| GET | `/api/admin/noticias` | ADMIN/EDITOR; paginado y filtro opcional por estado |
+| GET | `/api/admin/noticias/{id}` | ADMIN/EDITOR; detalle en cualquier estado |
+| POST | `/api/admin/noticias` | ADMIN/EDITOR; crear borrador |
+| PUT | `/api/admin/noticias/{id}` | ADMIN/EDITOR; reemplazar titulo, resumen y contenido |
+| PUT | `/api/admin/noticias/{id}/estado` | ADMIN/EDITOR; publicar, retirar o archivar |
 | POST | `/api/admin/storage/test` | Temporal y optativo; ADMIN o EDITOR; multipart |
 | DELETE | `/api/admin/storage/test?objectKey=...` | Temporal y optativo; ADMIN o EDITOR |
 | GET | `/api/admin/storage/test/url?objectKey=...` | Temporal y optativo; ADMIN o EDITOR |
@@ -342,9 +351,9 @@ hacia la interfaz. La seleccion se hace por `app.storage.provider`, sin plugins
 dinamicos. `none` deja el storage deshabilitado; `supabase` activa la implementacion.
 
 La identidad es una clave como `noticias/{uuid}.webp` o `documentos/{uuid}.pdf`;
-esos namespaces estan soportados por el contrato sin implementar tales entidades.
+esos namespaces estan soportados por el contrato; Noticias todavia no tiene adjuntos.
 No se almacenan archivos en PostgreSQL ni URLs completas como identidad persistente.
-Cuando se agreguen modulos de contenido, sus entidades guardaran `objectKey` y
+Cuando se agreguen archivos a los modulos de contenido, sus entidades guardaran `objectKey` y
 resolveran la URL a traves de `StorageService`.
 
 Para migrar posteriormente a OCI bastara con implementar el mismo contrato,
@@ -425,6 +434,13 @@ src/main/java/ar/edu/ifts2/
     controller/StorageTestController.java
     dto/StorageUploadResponse.java, StorageUrlResponse.java
   config/OpenApiConfig.java
+  noticia/
+    controller/NoticiaAdminController.java, NoticiaPublicaController.java
+    service/NoticiaService.java
+    repository/NoticiaRepository.java
+    entity/Noticia.java, EstadoNoticia.java
+    dto/NoticiaRequest.java, CambiarEstadoNoticiaRequest.java
+    dto/NoticiaAdminResponse.java, NoticiaPublicaResponse.java, NoticiaResumenResponse.java
   shared/
     controller/ProbeController.java
     dto/StatusResponse.java, PageResponse.java
@@ -433,10 +449,12 @@ src/main/java/ar/edu/ifts2/
 src/main/resources/
   application.yml
   db/migration/V1__crear_usuarios.sql
+  db/migration/V2__crear_noticias.sql
 src/test/java/ar/edu/ifts2/
   auth/AuthSecurityIntegrationTest.java
   security/JwtConfigTest.java
   usuario/UsuarioIntegrationTest.java
+  noticia/NoticiaIntegrationTest.java
   usuario/service/BootstrapAdminInitializerTest.java
   shared/error/GlobalExceptionHandlerTest.java
   storage/FileValidatorTest.java, SupabaseStorageServiceTest.java
@@ -453,8 +471,8 @@ La inyeccion es por constructor, no se usa Lombok y las entidades no se exponen.
 La tabla `usuarios` usa UUID, email normalizado y unico, rol enumerado y timestamps
 UTC. Las restricciones tambien estan en PostgreSQL. Los callbacks JPA mantienen
 `createdAt` y `updatedAt`; las modificaciones manuales por SQL deben actualizar
-`updated_at` explicitamente. No hay relaciones JPA nuevas ni cambios de esquema en
-esta milestone. `AGENTS.md` se conserva localmente y ya no esta excluido de Git.
+`updated_at` explicitamente. Noticias tiene una tabla independiente, sin relaciones
+JPA nuevas ni modificaciones a usuarios. `AGENTS.md` ya no esta excluido de Git.
 
 ## Pruebas
 
@@ -482,3 +500,8 @@ Storage se prueba con `MockRestServiceServer` y un `StorageService` simulado par
 los endpoints; nunca se llama al proyecto real de Supabase ni se requieren sus
 credenciales. Se cubren headers HTTP, MIME/firma, tamanos, path traversal, claves
 UUID, traduccion de errores y contratos OpenAPI con Bearer y multipart.
+
+Noticias agrega pruebas de creacion/edicion por ambos roles, publicacion y retiro,
+archivado reversible, aislamiento de borradores en consultas publicas, paginacion,
+validaciones, restricciones SQL, concurrencia entre edicion y cambio de estado y
+documentacion OpenAPI. Funciona tambien con `STORAGE_PROVIDER=none`.
