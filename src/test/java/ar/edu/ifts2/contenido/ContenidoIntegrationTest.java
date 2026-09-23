@@ -366,7 +366,7 @@ class ContenidoIntegrationTest extends PostgresIntegrationTest {
             String key = "noticias/" + UUID.randomUUID() + ".png";
             jdbc.update("insert into migration_upgrade_test.noticias(id,titulo,resumen,contenido,portada_object_key) values (?,?,?,?,?)",
                     id, "Conservar", "Resumen", "Contenido", key);
-            var flyway = Flyway.configure().dataSource(jdbc.getDataSource()).schemas(schema).defaultSchema(schema).load();
+            var flyway = Flyway.configure().dataSource(jdbc.getDataSource()).schemas(schema).defaultSchema(schema).target("4").load();
             flyway.migrate();
             assertThat(flyway.info().current().getVersion().getVersion()).isEqualTo("4");
             assertThat(jdbc.queryForObject("select portada_object_key from migration_upgrade_test.noticias where id=?", String.class, id)).isEqualTo(key);

@@ -14,7 +14,7 @@ public class OpenApiConfig {
         return new OpenAPI()
                 .info(new Info().title("IFTS N. 2 - API institucional")
                         .version("v1")
-                        .description("CMS institucional: autenticacion, usuarios, noticias, eventos, documentos, carreras, autoridades, enlaces e institucion."))
+                        .description("CMS institucional: autenticacion, usuarios, noticias por area, destacados, eventos y galeria, documentos, carreras, autoridades, enlaces e institucion con datos del sitio. Integracion con Meta pendiente."))
                 .components(new Components().addSecuritySchemes("bearerAuth", new SecurityScheme()
                         .type(SecurityScheme.Type.HTTP).scheme("bearer").bearerFormat("JWT")));
     }

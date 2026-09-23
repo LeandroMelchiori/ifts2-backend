@@ -5,6 +5,10 @@ Institucion. Se suma a Noticias, usuarios, autenticacion y storage existentes.
 Todo se puede compilar y probar sin cuentas de OCI/Supabase. No se implementa
 gestion academica, inscripciones, notas ni cursadas.
 
+La ampliacion V5 suma fotos multiples por evento, galeria, destacados web y datos
+del sitio. Sus endpoints y reglas estan en [Contrato de la maqueta](maqueta-cms.md);
+las portadas siguen siendo independientes de las fotos de galeria.
+
 ## Arquitectura
 
 Cada feature tiene entidades, DTOs, repositorio, servicio y controllers publicos

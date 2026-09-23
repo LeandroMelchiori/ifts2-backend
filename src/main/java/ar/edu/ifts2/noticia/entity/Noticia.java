@@ -11,6 +11,8 @@ import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.util.UUID;
 
 @Entity
@@ -28,6 +30,19 @@ public class Noticia {
 
     @Column(nullable = false, columnDefinition = "text")
     private String contenido;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private AreaContenido area = AreaContenido.GENERAL;
+
+    @Column(name = "mostrar_en_novedades", nullable = false)
+    private boolean mostrarEnNovedades = true;
+
+    @Column(name = "enlace_url", length = 2048)
+    private String enlaceUrl;
+
+    @Column(nullable = false)
+    private LocalDate fecha = LocalDate.now(ZoneOffset.UTC);
 
     @Column(name = "portada_object_key", length = 255, unique = true)
     private String portadaObjectKey;
@@ -75,6 +90,17 @@ public class Noticia {
     void onUpdate() { updatedAt = Instant.now(); }
 
     public UUID getId() { return id; }
+    public void actualizarPresentacion(AreaContenido area, Boolean novedades, String enlaceUrl, LocalDate fecha) {
+        if (area != null) this.area = area;
+        if (novedades != null) this.mostrarEnNovedades = novedades;
+        this.enlaceUrl = enlaceUrl;
+        if (fecha != null) this.fecha = fecha;
+    }
+
+    public AreaContenido getArea() { return area; }
+    public boolean isMostrarEnNovedades() { return mostrarEnNovedades; }
+    public String getEnlaceUrl() { return enlaceUrl; }
+    public LocalDate getFecha() { return fecha; }
     public String getTitulo() { return titulo; }
     public String getResumen() { return resumen; }
     public String getContenido() { return contenido; }

@@ -3,6 +3,7 @@ package ar.edu.ifts2.noticia.controller;
 import ar.edu.ifts2.noticia.dto.NoticiaPublicaResponse;
 import ar.edu.ifts2.noticia.dto.NoticiaResumenResponse;
 import ar.edu.ifts2.noticia.service.NoticiaService;
+import ar.edu.ifts2.noticia.entity.AreaContenido;
 import ar.edu.ifts2.shared.dto.PageResponse;
 import ar.edu.ifts2.shared.error.ApiError;
 import io.swagger.v3.oas.annotations.Operation;
@@ -39,10 +40,12 @@ public class NoticiaPublicaController {
     @Operation(summary = "Listar noticias publicadas", description = "Sin autenticacion. Orden: publicadaAt descendente, id ascendente. No incluye el cuerpo completo ni admite consultar otros estados.")
     @ApiResponse(responseCode = "200", description = "Pagina de resumenes publicados")
     public PageResponse<NoticiaResumenResponse> listar(
-            @Parameter(description = "Pagina desde cero") @RequestParam(defaultValue = "0") @Min(0) int page,
+            @RequestParam(required = false) AreaContenido area,
+            @RequestParam(required = false) Boolean mostrarEnNovedades,
+            @Parameter(description = "Pagina desde cero") @RequestParam(defaultValue = "0") @Min(0) @Max(1000000) int page,
             @Parameter(description = "Cantidad por pagina, entre 1 y 100")
             @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size) {
-        return service.listarPublicadas(page, size);
+        return service.listarPublicadas(page, size, area, mostrarEnNovedades);
     }
 
     @GetMapping("/{id}")

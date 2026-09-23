@@ -6,7 +6,10 @@ informacion institucional. El almacenamiento se integra mediante una abstraccion
 propia con un adaptador Supabase disponible.
 La gestion academica corresponde a SIU Guarani. No se implementan Docker, OCI,
 refresh tokens ni microservicios. Los contratos se detallan en
-[Noticias](docs/noticias.md) y [Modulos institucionales](docs/contenido-institucional.md).
+[Noticias](docs/noticias.md), [Modulos institucionales](docs/contenido-institucional.md)
+y [Contrato de la maqueta](docs/maqueta-cms.md).
+La ampliacion de la maqueta incluye areas/Novedades, destacados web ordenados,
+datos del sitio y galerias de eventos. La integracion de posts de Meta sigue pendiente.
 Los tests funcionan sin servicios externos y el CMS arranca sin storage con
 `STORAGE_PROVIDER=none`; para ejecutar la API fuera de tests se requiere PostgreSQL.
 
@@ -50,10 +53,11 @@ raiz correspondiente. La persistencia usa PostgreSQL estandar; no utiliza Supaba
 Auth. La integracion HTTP de archivos esta aislada en el modulo de storage.
 
 Flyway aplica `V1__crear_usuarios.sql`, `V2__crear_noticias.sql`,
-`V3__agregar_portada_noticias.sql` y `V4__crear_contenido_institucional.sql` desde
+`V3__agregar_portada_noticias.sql`, `V4__crear_contenido_institucional.sql` y
+`V5__alinear_cms_con_maqueta.sql` desde
 `src/main/resources/db/migration`. Hibernate usa `ddl-auto=validate`: comprueba
 el esquema pero no lo crea ni modifica. Para cambios posteriores agregar nuevas
-migraciones a partir de `V5__...sql`, sin editar las ya aplicadas.
+migraciones a partir de `V6__...sql`, sin editar las ya aplicadas.
 
 ## Configuracion
 
@@ -469,6 +473,8 @@ src/main/java/ar/edu/ifts2/
   config/OpenApiConfig.java
   evento/, carrera/, autoridad/, enlace/, documento/, institucion/
     controller/, service/, repository/, entity/, dto/
+  destacado/
+    controller/, service/, repository/, entity/, dto/
   noticia/
     controller/NoticiaAdminController.java, NoticiaPublicaController.java
     controller/NoticiaPortadaController.java
@@ -492,8 +498,10 @@ src/main/resources/
   db/migration/V2__crear_noticias.sql
   db/migration/V3__agregar_portada_noticias.sql
   db/migration/V4__crear_contenido_institucional.sql
+  db/migration/V5__alinear_cms_con_maqueta.sql
 src/test/java/ar/edu/ifts2/
   contenido/ContenidoIntegrationTest.java, ContenidoSinStorageIntegrationTest.java
+  contenido/MaquetaIntegrationTest.java, MaquetaSinStorageIntegrationTest.java
   auth/AuthSecurityIntegrationTest.java
   security/JwtConfigTest.java
   usuario/UsuarioIntegrationTest.java
@@ -560,6 +568,47 @@ ciclo editorial por ambos roles, fechas, URLs, orden, filtros, permisos, instanc
 unica de Institucion, reglas PDF, compensacion de archivos, modo sin proveedor,
 OpenAPI y migracion desde V3 conservando Noticias. `ArchivoStorageService`
 centraliza la coordinacion de archivos que antes estaba dentro de Noticias.
+
+Las pruebas de la maqueta verifican areas y filtros de Novedades, perfiles sociales
+ocultos, carrusel mixto de noticias/eventos con hasta seis elementos, galeria,
+propiedad de fotos, concurrencia, rollback y migracion V4 a V5. Los contratos,
+ejemplos de requests y pendientes de frontend/Meta estan en
+[Alineacion con la maqueta](docs/maqueta-cms.md).
+
+## Integracion continua
+
+El workflow [CI](.github/workflows/ci.yml) ejecuta `bash ./mvnw -B -ntp clean verify`
+en cada push a una rama y en pull requests. Tambien puede iniciarse manualmente
+desde Actions > CI > Run workflow una vez presente en la rama predeterminada.
+
+Usa un runner de GitHub `ubuntu-24.04`, Java 21 Temurin y la version de Maven
+fijada en el wrapper. La cache de Maven evita descargar nuevamente dependencias
+sin cambios. Los tests levantan su PostgreSQL temporal mediante Zonky y generan
+sus credenciales de prueba: no se necesitan secrets, variables del repositorio,
+una base externa ni Docker. No se conecta a OCI/Supabase ni despliega la aplicacion.
+
+El check se llama `Build and tests (Java 21)`. Si falla, revisar el paso
+`Compile, test and package` y descargar el artifact `test-reports` de esa
+ejecucion. Los reportes Surefire disponibles se conservan por 7 dias, incluso
+cuando fallan tests; si el build falla antes de generarlos, solo habra logs.
+El job tiene un limite de 20 minutos y una nueva ejecucion cancela la anterior
+para el mismo evento y rama o pull request. Una rama con PR abierto puede generar
+dos ejecuciones, una por push y otra por pull request.
+
+El token de GitHub solo tiene permiso `contents: read` y checkout no conserva
+credenciales. Las acciones estan fijadas por SHA completo, con su version en un
+comentario; al actualizarlas, verificar el commit en su repositorio oficial.
+Se usa `pull_request`, no `pull_request_target`, para probar contribuciones.
+
+Para trasladarlo a otro repositorio de GitHub, incluir `.github/workflows/ci.yml`,
+`.gitattributes`, el wrapper y el resto del proyecto. No hay referencias a una
+cuenta personal ni a una rama especifica. En el repositorio destino verificar
+que Actions este habilitado y que las politicas de la organizacion permitan
+`actions/checkout`, `actions/setup-java` y `actions/upload-artifact`.
+Las reglas de proteccion de ramas no viajan con los archivos: configurar alli
+el check como obligatorio despues de su primera ejecucion. El workflow por si
+solo no impide merges y el historial de ejecuciones no se copia al subir el
+codigo a un repositorio nuevo. La primera ejecucion remota requiere hacer push.
 
 Para las pruebas reales pendientes con Supabase/OCI y los limites deliberados de
 esta version ver [Pendiente de integracion](docs/contenido-institucional.md#pendiente-de-integracion).

@@ -4,6 +4,7 @@ import ar.edu.ifts2.noticia.dto.CambiarEstadoNoticiaRequest;
 import ar.edu.ifts2.noticia.dto.NoticiaAdminResponse;
 import ar.edu.ifts2.noticia.dto.NoticiaRequest;
 import ar.edu.ifts2.noticia.entity.EstadoNoticia;
+import ar.edu.ifts2.noticia.entity.AreaContenido;
 import ar.edu.ifts2.noticia.service.NoticiaService;
 import ar.edu.ifts2.shared.dto.PageResponse;
 import ar.edu.ifts2.shared.error.ApiError;
@@ -54,10 +55,12 @@ public class NoticiaAdminController {
     @ApiResponse(responseCode = "200", description = "Pagina de noticias")
     public PageResponse<NoticiaAdminResponse> listar(
             @Parameter(description = "Estado opcional") @RequestParam(required = false) EstadoNoticia estado,
-            @Parameter(description = "Pagina desde cero") @RequestParam(defaultValue = "0") @Min(0) int page,
+            @RequestParam(required = false) AreaContenido area,
+            @RequestParam(required = false) Boolean mostrarEnNovedades,
+            @Parameter(description = "Pagina desde cero") @RequestParam(defaultValue = "0") @Min(0) @Max(1000000) int page,
             @Parameter(description = "Cantidad por pagina, entre 1 y 100")
             @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size) {
-        return service.listar(estado, page, size);
+        return service.listar(estado, page, size, area, mostrarEnNovedades);
     }
 
     @GetMapping("/{id}")

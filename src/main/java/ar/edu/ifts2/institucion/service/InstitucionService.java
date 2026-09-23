@@ -42,6 +42,16 @@ public class InstitucionService {
         return toAdmin(item);
     }
 
+    @Transactional
+    public InstitucionAdminResponse actualizarDatosSitio(DatosSitioRequest request) {
+        Institucion item = repository.findPrincipalForUpdate().orElseThrow(this::notFound);
+        item.actualizarDatosSitio(request.direccion(), request.email(), request.telefono(), request.busquedaMapa(),
+                request.sitioOficialUrl(), request.instagramUrl(), request.instagramVisible(),
+                request.facebookUrl(), request.facebookVisible());
+        repository.flush();
+        return toAdmin(item);
+    }
+
     private InstitucionAdminResponse toAdmin(Institucion item) { return InstitucionAdminResponse.from(item); }
     private InstitucionPublicaResponse toPublic(Institucion item) { return InstitucionPublicaResponse.from(item); }
     private ResourceNotFoundException notFound() { return new ResourceNotFoundException("Institucion: recurso no encontrado"); }

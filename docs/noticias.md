@@ -4,6 +4,11 @@ Modulo institucional bajo `ar.edu.ifts2.noticia`. Utiliza PostgreSQL, Flyway y l
 roles/JWT existentes. No requiere nuevas dependencias ni variables de entorno.
 La migracion `V2__crear_noticias.sql` se aplica al iniciar, preservando usuarios.
 
+V5 agrega area, mostrarEnNovedades, enlaceUrl y fecha editorial, con valores
+compatibles para noticias existentes. El contrato ampliado y los filtros estan
+en [Noticias por area](maqueta-cms.md#noticias-por-area); el carrusel se administra
+desde [Destacados web](maqueta-cms.md#destacados-web), sin duplicar un flag destacado.
+
 ## Modelo y decisiones
 
 - UUID como identificador, consistente con usuarios. No hay slug ni titulo unico.
@@ -21,7 +26,8 @@ El contenido es texto plano: el frontend debe renderizar titulo, resumen y cuerp
 como texto, con escape HTML, nunca con `innerHTML`. La API no interpreta ni
 sanitiza HTML para un editor enriquecido. La portada es una imagen opcional y se
 administra mediante endpoints independientes. Esta version no incluye otros
-adjuntos, autores publicos, categorias, programacion ni historial de revisiones.
+adjuntos, autores publicos, categorias adicionales a las areas, programacion ni
+historial de revisiones.
 
 Las noticias se crean siempre como BORRADOR. Publicar es una operacion explicita
 disponible para ADMIN y EDITOR. Ambos roles pueden administrar todas las noticias.
@@ -60,7 +66,7 @@ modificar noticias existentes. Una restriccion limita las claves al namespace
 | PUT | `/api/admin/noticias/{id}/portada` | ADMIN/EDITOR, multipart `file`, 200, nueva portada |
 | DELETE | `/api/admin/noticias/{id}/portada` | ADMIN/EDITOR, 204, quitar portada |
 
-Ambos listados usan `page=0` y `size=20` por defecto; `page >= 0` y `1 <= size <= 100`.
+Ambos listados usan `page=0` y `size=20` por defecto; `0 <= page <= 1000000` y `1 <= size <= 100`.
 El administrativo admite `estado=BORRADOR`, `PUBLICADA` o `ARCHIVADA`; omitirlo
 incluye todos. El listado publico filtra PUBLICADA en la consulta a la base,
 independientemente de cualquier parametro `estado` enviado por el cliente.
@@ -157,7 +163,9 @@ y usar el token en `Authorize`. Las operaciones estan agrupadas en `News` y
 
 4. Consultar `/api/noticias` y `/api/noticias/{id}` sin token. La noticia es visible.
 5. Actualizar con `PUT /api/admin/noticias/{id}` enviando los tres campos completos.
-   No enviar estado, fechas, id, portadaObjectKey ni portadaUrl: se rechazan con 400.
+   No enviar estado, fechas de auditoria/publicacion, id, portadaObjectKey ni portadaUrl:
+   se rechazan con 400. V5 permite la fecha editorial `fecha` y los campos de area,
+   Novedades y enlace documentados en la guia de la maqueta.
 6. Retirar con el endpoint de estado y `{ "estado": "BORRADOR" }`, o archivar
    con `{ "estado": "ARCHIVADA" }`. Ambos la ocultan del listado y detalle publicos.
 

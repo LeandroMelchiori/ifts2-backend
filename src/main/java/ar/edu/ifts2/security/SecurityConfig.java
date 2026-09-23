@@ -27,6 +27,8 @@ public class SecurityConfig {
                 .authorizeHttpRequests(authorize -> authorize
                         .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/destacados", "/api/galeria", "/api/eventos/*/fotos").permitAll()
+                        .requestMatchers(HttpMethod.HEAD, "/api/destacados", "/api/galeria", "/api/eventos/*/fotos").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/noticias", "/api/noticias/*").permitAll()
                         .requestMatchers(HttpMethod.HEAD, "/api/noticias", "/api/noticias/*").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/eventos", "/api/eventos/*", "/api/carreras", "/api/carreras/*",

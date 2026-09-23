@@ -47,4 +47,11 @@ public class InstitucionAdminController {
     public InstitucionAdminResponse cambiarEstado(@Valid @RequestBody CambiarEstadoRequest request) {
         return service.cambiarEstado(request.estado());
     }
+
+    @PutMapping("/datos-sitio")
+    @Operation(summary = "Guardar contacto, mapa y perfiles sociales",
+            description = "Reemplaza esos campos; conserva nombre, descripcion, horarios y estado. Requiere Institucion creada. Un perfil oculto no expone su URL en la API publica. No conecta con Meta.")
+    public InstitucionAdminResponse actualizarDatosSitio(@Valid @RequestBody DatosSitioRequest request) {
+        return service.actualizarDatosSitio(request);
+    }
 }
