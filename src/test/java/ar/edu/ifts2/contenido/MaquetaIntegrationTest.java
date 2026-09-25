@@ -429,7 +429,7 @@ class MaquetaIntegrationTest extends PostgresIntegrationTest {
             UUID id = UUID.randomUUID();
             jdbc.update("insert into maqueta_upgrade_test.noticias(id,titulo,resumen,contenido,estado,publicada_at) values(?,?,?,?,?,?::timestamptz)",
                     id, "Anterior", "Resumen", "Texto", "PUBLICADA", "2025-03-10T23:30:00Z");
-            var flyway = Flyway.configure().dataSource(jdbc.getDataSource()).schemas(schema).defaultSchema(schema).load();
+            var flyway = Flyway.configure().dataSource(jdbc.getDataSource()).schemas(schema).defaultSchema(schema).target("5").load();
             flyway.migrate();
             assertThat(flyway.info().current().getVersion().getVersion()).isEqualTo("5");
             assertThat(jdbc.queryForObject("select area from maqueta_upgrade_test.noticias where id=?", String.class, id)).isEqualTo("GENERAL");

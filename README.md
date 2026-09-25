@@ -9,7 +9,8 @@ refresh tokens ni microservicios. Los contratos se detallan en
 [Noticias](docs/noticias.md), [Modulos institucionales](docs/contenido-institucional.md)
 y [Contrato de la maqueta](docs/maqueta-cms.md).
 La ampliacion de la maqueta incluye areas/Novedades, destacados web ordenados,
-datos del sitio y galerias de eventos. La integracion de posts de Meta sigue pendiente.
+datos del sitio y galerias de eventos. Incluye integracion configurable de Meta/Instagram,
+visibilidad persistida, destacados mixtos y medicion del bucket de almacenamiento.
 Los tests funcionan sin servicios externos y el CMS arranca sin storage con
 `STORAGE_PROVIDER=none`; para ejecutar la API fuera de tests se requiere PostgreSQL.
 
@@ -54,7 +55,7 @@ Auth. La integracion HTTP de archivos esta aislada en el modulo de storage.
 
 Flyway aplica `V1__crear_usuarios.sql`, `V2__crear_noticias.sql`,
 `V3__agregar_portada_noticias.sql`, `V4__crear_contenido_institucional.sql` y
-`V5__alinear_cms_con_maqueta.sql` desde
+`V5__alinear_cms_con_maqueta.sql` y `V6__integrar_publicaciones_meta.sql` desde
 `src/main/resources/db/migration`. Hibernate usa `ddl-auto=validate`: comprueba
 el esquema pero no lo crea ni modifica. Para cambios posteriores agregar nuevas
 migraciones a partir de `V6__...sql`, sin editar las ya aplicadas.
@@ -499,6 +500,7 @@ src/main/resources/
   db/migration/V3__agregar_portada_noticias.sql
   db/migration/V4__crear_contenido_institucional.sql
   db/migration/V5__alinear_cms_con_maqueta.sql
+  db/migration/V6__integrar_publicaciones_meta.sql
 src/test/java/ar/edu/ifts2/
   contenido/ContenidoIntegrationTest.java, ContenidoSinStorageIntegrationTest.java
   contenido/MaquetaIntegrationTest.java, MaquetaSinStorageIntegrationTest.java
@@ -574,6 +576,15 @@ ocultos, carrusel mixto de noticias/eventos con hasta seis elementos, galeria,
 propiedad de fotos, concurrencia, rollback y migracion V4 a V5. Los contratos,
 ejemplos de requests y pendientes de frontend/Meta estan en
 [Alineacion con la maqueta](docs/maqueta-cms.md).
+
+## Meta / Instagram
+
+La integracion Meta, sus variables de entorno, nuevos endpoints de visibilidad/feed,
+limites de previews, storage usage y adaptaciones del frontend estan documentados
+en [Meta / Instagram](docs/meta-instagram.md). Meta esta deshabilitado por defecto;
+no requiere credenciales cloud para ejecutar la suite. El flujo institucional es
+Facebook Login + Fan Page; la emision/rotacion de su token es externa, no hay
+refresh automatico ni consultas Graph desde el navegador.
 
 ## Integracion continua
 

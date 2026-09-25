@@ -7,11 +7,12 @@ import java.util.List;
 import java.util.UUID;
 
 public record DestacadosRequest(@NotNull @Size(max = 6) List<@NotNull @Valid Referencia> items) {
-    public record Referencia(UUID noticiaId, UUID eventoId) {
+    public record Referencia(UUID noticiaId, UUID eventoId, @Pattern(regexp = "[0-9]{1,40}") String metaPostId) {
+        public Referencia(UUID noticiaId, UUID eventoId) { this(noticiaId, eventoId, null); }
         @JsonIgnore
-        @AssertTrue(message = "Indicar exactamente una noticia o un evento")
+        @AssertTrue(message = "Indicar exactamente una noticia, un evento o un post Meta")
         public boolean isOrigenValido() {
-            return (noticiaId != null) != (eventoId != null);
+            return (noticiaId != null ? 1 : 0) + (eventoId != null ? 1 : 0) + (metaPostId != null ? 1 : 0) == 1;
         }
     }
 }

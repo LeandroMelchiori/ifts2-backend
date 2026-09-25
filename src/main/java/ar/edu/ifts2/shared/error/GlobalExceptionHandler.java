@@ -2,6 +2,7 @@ package ar.edu.ifts2.shared.error;
 
 import jakarta.servlet.http.HttpServletRequest;
 import ar.edu.ifts2.storage.StorageException;
+import ar.edu.ifts2.meta.client.MetaException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -82,6 +83,16 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return response(HttpStatus.INTERNAL_SERVER_ERROR, "Error interno del servidor", request);
     }
 
+    @ExceptionHandler(MetaException.class)
+    ResponseEntity<ApiError> handleMeta(MetaException ex, HttpServletRequest request) {
+        HttpStatus status = switch (ex.getReason()) {
+            case DISABLED, TOKEN_INVALID -> HttpStatus.SERVICE_UNAVAILABLE;
+            case PROVIDER_FAILURE -> HttpStatus.BAD_GATEWAY;
+            case PREVIEW_MISSING -> HttpStatus.CONFLICT;
+        };
+        return response(status, ex.getMessage(), request);
+    }
+
     @ExceptionHandler(StorageException.class)
     ResponseEntity<ApiError> handleStorage(StorageException ex, HttpServletRequest request) {
         HttpStatus status = switch (ex.getReason()) {
@@ -90,7 +101,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
             case UNSUPPORTED_TYPE -> HttpStatus.UNSUPPORTED_MEDIA_TYPE;
             case NOT_FOUND -> HttpStatus.NOT_FOUND;
             case PROVIDER_FAILURE -> HttpStatus.BAD_GATEWAY;
-            case STORAGE_DISABLED -> HttpStatus.SERVICE_UNAVAILABLE;
+            case STORAGE_DISABLED, INVENTORY_UNAVAILABLE -> HttpStatus.SERVICE_UNAVAILABLE;
         };
         return response(status, ex.getMessage(), request);
     }

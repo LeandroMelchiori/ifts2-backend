@@ -5,8 +5,9 @@ import org.springframework.data.jpa.repository.*;
 import java.util.List;
 
 public interface DestacadoRepository extends JpaRepository<Destacado, Integer> {
-    @EntityGraph(attributePaths = {"noticia", "evento"})
+    @EntityGraph(attributePaths = {"noticia", "evento", "metaPost"})
     List<Destacado> findAllByOrderByPosicionAsc();
+    boolean existsByMetaPostId(String metaPostId);
 
     @Query(value = "select id from carrusel where id = 1 for update", nativeQuery = true)
     Integer bloquearCarrusel();

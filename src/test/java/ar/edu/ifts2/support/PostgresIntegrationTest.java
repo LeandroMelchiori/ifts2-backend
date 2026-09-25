@@ -18,7 +18,9 @@ import java.util.Base64;
         "spring.datasource.url=jdbc:postgresql://localhost/unused", "spring.datasource.username=unused",
         "spring.datasource.password=", "app.bootstrap-admin.enabled=false", "app.jwt.issuer=ifts2-test",
         "app.jwt.access-token-ttl=15m", "springdoc.api-docs.enabled=true", "springdoc.swagger-ui.enabled=true",
-        "app.storage.provider=none", "app.storage.test-endpoints-enabled=false"
+        "app.storage.provider=none", "app.storage.test-endpoints-enabled=false", "app.meta.enabled=false",
+        "app.storage.usage-limit-bytes=0",
+        "app.cors.allowed-origins=http://localhost:5173,http://127.0.0.1:5173,http://localhost:4173,http://localhost:3000"
 })
 @AutoConfigureMockMvc
 @Import(PostgresIntegrationTest.DatabaseConfiguration.class)

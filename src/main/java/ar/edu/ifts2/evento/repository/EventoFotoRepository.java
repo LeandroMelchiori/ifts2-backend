@@ -9,6 +9,8 @@ import java.util.*;
 
 public interface EventoFotoRepository extends JpaRepository<EventoFoto, UUID> {
     long countByEventoId(UUID eventoId);
+    @Query("select f.objectKey from EventoFoto f")
+    List<String> findAllObjectKeys();
     Optional<EventoFoto> findByIdAndEventoId(UUID id, UUID eventoId);
 
     @EntityGraph(attributePaths = "evento")

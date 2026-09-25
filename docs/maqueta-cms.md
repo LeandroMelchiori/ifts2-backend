@@ -1,8 +1,8 @@
 # Alineacion con la maqueta administrativa
 
-Esta etapa agrega funciones del CMS que no dependen de Meta: noticias por area,
-carrusel web, datos del sitio y fotos de eventos. No conecta OCI/Supabase ni
-implementa importacion, refresh o cache de publicaciones de redes.
+Esta guia describe la etapa V5: noticias por area, carrusel web, datos del sitio
+y fotos de eventos. La ampliacion V6 incorpora Meta, previews, visibilidad y
+destacados mixtos; ver [Meta / Instagram](meta-instagram.md) para esos contratos.
 
 ## Decisiones y compatibilidad
 
@@ -18,7 +18,8 @@ implementa importacion, refresh o cache de publicaciones de redes.
   "Borrar", debera aclarar que archiva; preferible llamarlo "Archivar".
 - Las fotos si pueden eliminarse: quitar una foto no elimina el evento.
 - Se conservan endpoints y campos previos. Las respuestas tienen campos adicionales.
-- No se copian datos ni credenciales de demo ni se agregan llamadas a Meta.
+- No se copian datos ni credenciales de demo. La integracion Meta es opcional y
+  permanece deshabilitada hasta configurar las credenciales del servidor.
 - El frontend aun debe adaptar sus requests/responses y reemplazar localStorage.
   Esta implementacion no modifica ni conecta el repositorio de la maqueta.
 
@@ -91,13 +92,14 @@ posiciones 1..6; no se mandan posiciones individuales:
 ```
 
 Los UUID son ilustrativos: deben existir y estar publicados. Cada elemento
-requiere exactamente uno de los dos IDs. Lista vacia limpia el carrusel.
+requiere exactamente un ID; V6 permite tambien `metaPostId` numerico como string
+para posts Meta visibles. Lista vacia limpia el carrusel.
 Maximo seis, sin duplicados. Siete elementos, null o referencia ambigua: 400.
 Recurso inexistente: 404. Duplicado o contenido sin publicar: 409.
 Si falla cualquier referencia, la lista anterior permanece completa.
 
-Las respuestas contienen posicion, noticiaId/eventoId, titulo, resumen,
-portadaUrl y enlaceUrl (este ultimo solo para noticias que lo tengan).
+Las respuestas contienen posicion, noticiaId/eventoId/metaPostId, tipo, titulo,
+resumen, portadaUrl y enlaceUrl (noticias con enlace y posts Meta).
 El administrador recibe ademas `disponible`. Para abrir el detalle, el frontend
 usa el ID y el tipo de referencia; no se impone una ruta de frontend.
 
@@ -111,9 +113,8 @@ incluso cuando esta vacio. Si dos editores guardan simultaneamente, prevalece la
 ultima lista guardada; no se mezclan ambas. No hay control de versiones de UI.
 Titulos, imagenes y textos se leen del contenido original, sin duplicarlos.
 
-Por ahora solo noticias/eventos. Las referencias y sincronizacion de Meta se
-definiran con el contrato de la integracion existente del companero; no hay
-modelos de posts provisionales ni un importador alternativo.
+V6 agrega posts Meta al mismo carrusel, sin cambiar los IDs ni contratos de
+noticias/eventos; el limite de seis se comparte entre los tres origenes.
 
 ## Datos del sitio
 
@@ -238,8 +239,7 @@ rollback, errores de storage, modo sin proveedor, OpenAPI y migracion V4 a V5.
 ## Pendientes reales
 
 - Conectar/adaptar el frontend a estos contratos, incluidos email, UUID y archivado.
-- Acordar JSON, medios y ubicacion de la integracion de Meta con el companero.
-- Integrar su feed con visibilidad y destacados sin perder decisiones editoriales
-  al refrescar; ampliar el carrusel manteniendo el limite global de seis.
+- Adaptar el frontend al [contrato Meta](meta-instagram.md), retirando tokens y
+  decisiones editoriales locales. Verificar cuenta, permisos y bucket reales.
 - Aprobar datos institucionales reales y el comportamiento de restauracion.
 - Configurar almacenamiento y PostgreSQL reales, CORS del frontend y despliegue.

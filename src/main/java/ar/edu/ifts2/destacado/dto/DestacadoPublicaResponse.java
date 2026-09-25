@@ -4,4 +4,4 @@ import java.net.URI;
 import java.util.UUID;
 
 public record DestacadoPublicaResponse(int posicion, UUID noticiaId, UUID eventoId,
-        String titulo, String resumen, URI portadaUrl, String enlaceUrl) { }
+        String titulo, String resumen, URI portadaUrl, String enlaceUrl, String metaPostId, String tipo) { }

@@ -142,6 +142,48 @@ class SupabaseStorageServiceTest {
         assertThat(service.resolvePublicUrl(key)).isEqualTo(URI.create(base + "/storage/v1/object/public/institutional/" + key));
     }
 
+    @Test
+    void inventoryRecursesFoldersAndUsesActualMetadataSizes() {
+        server.expect(requestTo(base + "/storage/v1/object/list/institutional"))
+                .andExpect(content().json("{\"prefix\":\"\",\"offset\":0,\"limit\":100,\"sortBy\":{\"column\":\"name\",\"order\":\"asc\"}}"))
+                .andRespond(withSuccess("[{\"name\":\"meta\",\"id\":null,\"metadata\":null},{\"name\":\"root.png\",\"id\":\"a\",\"metadata\":{\"size\":7}}]", MediaType.APPLICATION_JSON));
+        server.expect(requestTo(base + "/storage/v1/object/list/institutional"))
+                .andExpect(content().json("{\"prefix\":\"meta/\",\"offset\":0}", false))
+                .andRespond(withSuccess("[{\"name\":\"image.png\",\"id\":\"b\",\"metadata\":{\"size\":2048}}]", MediaType.APPLICATION_JSON));
+        var files = service.listObjects();
+        assertThat(files).extracting(ar.edu.ifts2.storage.model.StorageObject::objectKey).containsExactly("root.png", "meta/image.png");
+        assertThat(files).extracting(ar.edu.ifts2.storage.model.StorageObject::size).containsExactly(7L, 2048L);
+    }
+
+    @Test
+    void inventoryPaginatesWithoutDroppingTheLastPage() {
+        String page = java.util.stream.IntStream.range(0, 100)
+                .mapToObj(i -> "{\"name\":\"file-" + i + ".png\",\"id\":\"" + i + "\",\"metadata\":{\"size\":1}}")
+                .collect(java.util.stream.Collectors.joining(",", "[", "]"));
+        server.expect(anything()).andExpect(content().json("{\"offset\":0}", false))
+                .andRespond(withSuccess(page, MediaType.APPLICATION_JSON));
+        server.expect(anything()).andExpect(content().json("{\"offset\":100}", false))
+                .andRespond(withSuccess("[{\"name\":\"last.png\",\"id\":\"last\",\"metadata\":{\"size\":9}}]", MediaType.APPLICATION_JSON));
+        assertThat(service.listObjects()).hasSize(101);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"{}", "not-json", "[{\"name\":\"image.png\",\"id\":\"x\",\"metadata\":{}}]",
+            "[{\"name\":\"image.png\",\"id\":\"x\",\"metadata\":{\"size\":-1}}]",
+            "[{\"name\":\"../private\",\"id\":null,\"metadata\":null}]"})
+    void inventoryRejectsMalformedResponsesInsteadOfReportingZero(String response) {
+        server.expect(anything()).andRespond(withSuccess(response, MediaType.APPLICATION_JSON));
+        expect(PROVIDER_FAILURE, () -> service.listObjects());
+    }
+
+    @Test
+    void inventoryStopsAtRequestBudgetWithoutPartialTotal() {
+        for (int i = 0; i < 100; i++) {
+            server.expect(anything()).andRespond(withSuccess("[{\"name\":\"folder\",\"id\":null,\"metadata\":null}]", MediaType.APPLICATION_JSON));
+        }
+        expect(INVENTORY_UNAVAILABLE, () -> service.listObjects());
+    }
+
     private ar.edu.ifts2.storage.model.StoredFile upload() {
         return service.upload("noticias", "image/png", FileValidatorTest.PNG.length, new ByteArrayInputStream(FileValidatorTest.PNG));
     }

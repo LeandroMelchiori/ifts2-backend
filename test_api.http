@@ -1,0 +1,85 @@
+### Archivo para probar la API en producción (Render)
+### Podés usar la extensión "REST Client" de VS Code para ejecutar esto directamente.
+
+@baseUrl = https://ifts2-backend.onrender.com/api
+
+### 1. LOGIN (Reemplazá el email y password por los que pusiste en Render)
+# @name login
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "tu_correo@ejemplo.com",
+  "password": "UnaPasswordSegura123"
+}
+
+### Guardamos el token de la respuesta en una variable
+@token = {{login.response.body.token}}
+
+### ---------------------------------------------------------
+### 2. CREAR UNA NOTICIA POR ÁREA (Requiere Token)
+# @name crearNoticia
+POST {{baseUrl}}/admin/noticias
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "titulo": "¡Bienvenidos al nuevo sitio del IFTS 2!",
+  "resumen": "Estamos probando el nuevo backend institucional.",
+  "contenido": "Esta es la primera noticia creada desde la API pública en Render conectada a Supabase.",
+  "area": "GENERAL",
+  "mostrarEnNovedades": true
+}
+
+### Guardamos el ID de la noticia creada
+@noticiaId = {{crearNoticia.response.body.id}}
+
+### ---------------------------------------------------------
+### 3. PUBLICAR LA NOTICIA (Para que sea visible públicamente)
+PUT {{baseUrl}}/admin/noticias/{{noticiaId}}/estado
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+"PUBLICADA"
+
+### ---------------------------------------------------------
+### 4. AGREGAR LA NOTICIA AL CARRUSEL DE DESTACADOS
+PUT {{baseUrl}}/admin/destacados
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "items": [
+    { "noticiaId": "{{noticiaId}}" }
+  ]
+}
+
+### ---------------------------------------------------------
+### 5. CARGAR DATOS INSTITUCIONALES (Contacto, Redes)
+### Nota: Primero debe existir la institución base. Si da 404, hay que crearla primero con PUT /api/admin/institucion
+PUT {{baseUrl}}/admin/institucion/datos-sitio
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "direccion": "Av. San Juan 2021, CABA",
+  "email": "contacto@ifts2.edu.ar",
+  "telefono": "+54 11 1234-5678",
+  "busquedaMapa": "Av. San Juan 2021, Buenos Aires, Argentina",
+  "sitioOficialUrl": "https://ifts2.edu.ar",
+  "instagramUrl": "https://www.instagram.com/ifts_2/",
+  "instagramVisible": true,
+  "facebookVisible": false
+}
+
+### ---------------------------------------------------------
+### 6. ENDPOINTS PÚBLICOS (Los que va a usar tu compañero desde Netlify sin token)
+
+### Ver destacados del carrusel:
+GET {{baseUrl}}/destacados
+
+### Ver noticias publicadas:
+GET {{baseUrl}}/noticias
+
+### Ver los datos del IFTS 2:
+GET {{baseUrl}}/institucion

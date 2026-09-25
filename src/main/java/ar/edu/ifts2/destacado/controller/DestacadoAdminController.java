@@ -33,7 +33,7 @@ public class DestacadoAdminController {
 
     @PutMapping
     @Operation(summary = "Reemplazar la seleccion ordenada de destacados",
-            description = "De cero a seis noticias o eventos publicados, sin duplicados. El orden del array define posiciones 1..6. Lista vacia limpia el carrusel. Guardado atomico; ante ediciones simultaneas prevalece la ultima lista guardada. No importa posts de Meta.")
+            description = "De cero a seis noticias/eventos publicados o posts Meta visibles, sin duplicados. Cada referencia tiene exactamente noticiaId, eventoId o metaPostId. El orden del array define posiciones 1..6. Lista vacia limpia el carrusel. Guardado atomico; ante ediciones simultaneas prevalece la ultima lista guardada.")
     public List<DestacadoAdminResponse> guardar(@Valid @RequestBody DestacadosRequest request) {
         return service.reemplazar(request);
     }

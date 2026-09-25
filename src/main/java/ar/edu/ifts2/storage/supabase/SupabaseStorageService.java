@@ -3,6 +3,7 @@ package ar.edu.ifts2.storage.supabase;
 import ar.edu.ifts2.storage.StorageException;
 import ar.edu.ifts2.storage.StorageService;
 import ar.edu.ifts2.storage.model.StoredFile;
+import ar.edu.ifts2.storage.model.StorageObject;
 import ar.edu.ifts2.storage.validation.FileValidator;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -16,6 +17,9 @@ import java.io.InputStream;
 import java.net.URI;
 import java.util.List;
 import java.util.Map;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.HashSet;
 import static ar.edu.ifts2.storage.StorageException.Reason.*;
 
 public class SupabaseStorageService implements StorageService {
@@ -74,6 +78,53 @@ public class SupabaseStorageService implements StorageService {
         return properties.url().resolve("/storage/v1/object/public/" + properties.bucket() + "/" + objectKey);
     }
 
+    @Override
+    public List<StorageObject> listObjects() {
+        var prefixes = new ArrayDeque<String>();
+        prefixes.add("");
+        var result = new ArrayList<StorageObject>();
+        var seen = new HashSet<String>();
+        int requests = 0;
+        try {
+            while (!prefixes.isEmpty()) {
+                String prefix = prefixes.remove();
+                for (int offset = 0; ; offset += 100) {
+                    // No informar una cifra parcial si el bucket excede el barrido acotado.
+                    if (++requests > 100) throw new StorageException(INVENTORY_UNAVAILABLE);
+                    JsonNode page = client.post().uri("/storage/v1/object/list/" + properties.bucket())
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .body(Map.of("prefix", prefix, "limit", 100, "offset", offset,
+                                    "sortBy", Map.of("column", "name", "order", "asc")))
+                            .exchange((request, response) -> {
+                                checkStatus(response, false);
+                                return readJson(response, 1_048_576);
+                            });
+                    if (page == null || !page.isArray() || page.size() > 100) throw new StorageException(PROVIDER_FAILURE);
+                    for (JsonNode item : page) {
+                        String name = item.path("name").asText();
+                        if (name.isBlank() || name.contains("/") || name.contains("\\") || name.equals(".") || name.equals("..")) {
+                            throw new StorageException(PROVIDER_FAILURE);
+                        }
+                        String key = prefix + name;
+                        if (key.length() > 1024 || !seen.add(key)) throw new StorageException(INVENTORY_UNAVAILABLE);
+                        if (!item.hasNonNull("id") && !item.hasNonNull("metadata")) prefixes.add(key + "/");
+                        else {
+                            JsonNode size = item.path("metadata").path("size");
+                            if (!size.isIntegralNumber() || !size.canConvertToLong() || size.longValue() < 0) {
+                                throw new StorageException(PROVIDER_FAILURE);
+                            }
+                            result.add(new StorageObject(key, size.longValue()));
+                        }
+                    }
+                    if (page.size() < 100) break;
+                }
+            }
+            return List.copyOf(result);
+        } catch (RestClientException ex) {
+            throw new StorageException(PROVIDER_FAILURE);
+        }
+    }
+
     private String objectPath() {
         return "/storage/v1/object/" + properties.bucket();
     }
@@ -92,8 +143,12 @@ public class SupabaseStorageService implements StorageService {
     }
 
     private JsonNode readJson(ClientHttpResponse response) throws IOException {
-        byte[] body = response.getBody().readNBytes(65_537);
-        if (body.length > 65_536) throw new StorageException(PROVIDER_FAILURE);
+        return readJson(response, 65_536);
+    }
+
+    private JsonNode readJson(ClientHttpResponse response, int maxBytes) throws IOException {
+        byte[] body = response.getBody().readNBytes(maxBytes + 1);
+        if (body.length > maxBytes) throw new StorageException(PROVIDER_FAILURE);
         try {
             return mapper.readTree(body);
         } catch (IOException ex) {
