@@ -34,6 +34,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(authorize -> authorize
                         .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
+                        .requestMatchers("/api/auth/me", "/api/auth/me/**").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/meta/posts").permitAll()
                         .requestMatchers(HttpMethod.HEAD, "/api/meta/posts").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/destacados", "/api/galeria", "/api/eventos/*/fotos").permitAll()

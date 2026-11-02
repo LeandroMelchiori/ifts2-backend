@@ -37,15 +37,48 @@ y rotar cualquier credencial institucional que se haya distribuido de esa manera
 ### Ciclo de la credencial
 
 La emision/rotacion de la credencial de Facebook Login queda como operacion externa
-del administrador de la app Meta. Este backend NO implementa OAuth, intercambio de
-tokens ni refresh automatico, y no usa el endpoint de refresh de Instagram Login.
-No es correcto presentar ambos flujos como intercambiables.
+del administrador de la app Meta. Este backend NO implementa OAuth interactivo ni
+recibe tokens desde el frontend. El token vive solo en variables de entorno del
+servidor (`META_ACCESS_TOKEN` en Render).
 
-Antes de produccion, el responsable de Meta debe confirmar el tipo de token,
-permisos, vencimiento y procedimiento de renovacion de la app institucional.
-Actualizar `META_ACCESS_TOKEN` y reiniciar/redeployar cuando corresponda. Un error
-Graph 190 devuelve 503 con mensaje controlado; el feed persistido sigue disponible.
-No se persisten tokens en las tablas del CMS ni se reciben desde el frontend.
+#### Como obtener un token long-lived (~60 dias)
+
+1. En [Meta for Developers](https://developers.facebook.com/) abrí la app y el
+   **Graph API Explorer**.
+2. Generá un **User token** corto con permisos tipicos:
+   `pages_show_list`, `pages_read_engagement`, `instagram_basic`
+   (ajustá a lo que Meta muestre vigente para Instagram Graph).
+3. Intercambiá el corto por uno largo (necesitás **App ID** y **App Secret** de
+   la app; el secret NUNCA va al front ni a Git):
+
+```bash
+curl -sS "https://graph.facebook.com/v21.0/oauth/access_token" \
+  --get \
+  --data-urlencode "grant_type=fb_exchange_token" \
+  --data-urlencode "client_id=TU_APP_ID" \
+  --data-urlencode "client_secret=TU_APP_SECRET" \
+  --data-urlencode "fb_exchange_token=TOKEN_CORTO_DEL_EXPLORER"
+```
+
+La respuesta trae `access_token` (long-lived) y `expires_in` (~5184000 s).
+
+4. En Render → servicio `ifts2-backend` → Environment, seteá:
+
+| Variable | Valor |
+| --- | --- |
+| `META_ENABLED` | `true` |
+| `META_API_VERSION` | ej. `v21.0` (la de tu app) |
+| `META_ACCOUNT_ID` | ID numerico de la cuenta IG profesional |
+| `META_ACCESS_TOKEN` | el `access_token` long-lived del paso 3 |
+
+5. Guardá y redeployá / reiniciá el servicio.
+
+No pegues el token en el chat, PRs ni `.env` del front (`VITE_*`). Si alguna vez
+estuvo en el navegador, **rotá** el token en Meta y cargá solo el nuevo en Render.
+
+Antes de produccion, el responsable de Meta debe confirmar tipo de token,
+permisos, vencimiento y renovacion (~cada 60 dias o con Page token extendido).
+Un error Graph 190 devuelve 503 controlado; el feed persistido sigue disponible.
 
 ## Endpoints
 

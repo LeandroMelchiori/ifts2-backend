@@ -96,4 +96,8 @@ public class Usuario {
     public void cambiarPasswordHash(String passwordHash) {
         this.passwordHash = passwordHash;
     }
+
+    public void cambiarEmail(String email) {
+        this.email = email.strip().toLowerCase(Locale.ROOT);
+    }
 }

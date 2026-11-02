@@ -36,6 +36,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -238,6 +239,90 @@ class AuthSecurityIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
+    void meRequiresAuthentication() throws Exception {
+        mvc.perform(get("/api/auth/me"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.status").value(401));
+    }
+
+    @Test
+    void meReturnsCurrentProfile() throws Exception {
+        mvc.perform(get("/api/auth/me").header(HttpHeaders.AUTHORIZATION,
+                        "Bearer " + login("editor@example.test")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(editor.getId().toString()))
+                .andExpect(jsonPath("$.email").value("editor@example.test"))
+                .andExpect(jsonPath("$.rol").value("EDITOR"))
+                .andExpect(jsonPath("$.password").doesNotExist())
+                .andExpect(jsonPath("$.passwordHash").doesNotExist());
+    }
+
+    @Test
+    void changeOwnPasswordRequiresCurrentPassword() throws Exception {
+        String token = login("editor@example.test");
+        mvc.perform(put("/api/auth/me/password")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"currentPassword":"wrong-password-xx","newPassword":"nueva-password-12"}
+                                """))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").value("Password actual incorrecta"));
+    }
+
+    @Test
+    void changeOwnPasswordAndEmailWithCurrentPassword() throws Exception {
+        String token = login("editor@example.test");
+        String newPassword = "nueva-password-12";
+        mvc.perform(put("/api/auth/me/password")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(mapper.writeValueAsString(
+                                java.util.Map.of("currentPassword", password, "newPassword", newPassword))))
+                .andExpect(status().isNoContent());
+
+        mvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
+                        .content(mapper.writeValueAsString(new LoginRequest("editor@example.test", newPassword))))
+                .andExpect(status().isOk());
+
+        String tokenAfter = loginWith("editor@example.test", newPassword);
+        mvc.perform(put("/api/auth/me/email")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + tokenAfter)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(mapper.writeValueAsString(
+                                java.util.Map.of(
+                                        "email", "editor.nuevo@example.test",
+                                        "currentPassword", newPassword))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.email").value("editor.nuevo@example.test"));
+
+        mvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
+                        .content(mapper.writeValueAsString(
+                                new LoginRequest("editor.nuevo@example.test", newPassword))))
+                .andExpect(status().isOk());
+
+        // Restaurar para no romper otros tests de la misma instancia
+        Usuario restored = repository.findById(editor.getId()).orElseThrow();
+        restored.cambiarEmail("editor@example.test");
+        restored.cambiarPasswordHash(passwordEncoder.encode(password));
+        repository.saveAndFlush(restored);
+        editor = restored;
+    }
+
+    @Test
+    void changeOwnEmailRejectsDuplicate() throws Exception {
+        mvc.perform(put("/api/auth/me/email")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + login("editor@example.test"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(mapper.writeValueAsString(
+                                java.util.Map.of(
+                                        "email", "admin@example.test",
+                                        "currentPassword", password))))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").value("El email ya esta registrado"));
+    }
+
+    @Test
     void swaggerDocumentsBearerAuthenticationAndPublicOperations() throws Exception {
         var result = mvc.perform(get("/v3/api-docs")).andExpect(status().isOk()).andReturn();
         JsonNode document = mapper.readTree(result.getResponse().getContentAsString());
@@ -277,8 +362,12 @@ class AuthSecurityIntegrationTest extends PostgresIntegrationTest {
     }
 
     private String login(String email) throws Exception {
+        return loginWith(email, password);
+    }
+
+    private String loginWith(String email, String providedPassword) throws Exception {
         var result = mvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
-                        .content(mapper.writeValueAsString(new LoginRequest(email, password))))
+                        .content(mapper.writeValueAsString(new LoginRequest(email, providedPassword))))
                 .andExpect(status().isOk()).andReturn();
         return mapper.readTree(result.getResponse().getContentAsString()).get("accessToken").asText();
     }
