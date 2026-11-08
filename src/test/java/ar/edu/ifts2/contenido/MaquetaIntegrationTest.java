@@ -77,7 +77,8 @@ class MaquetaIntegrationTest extends PostgresIntegrationTest {
     @BeforeAll
     void seedUsers() {
         String hash = encoder.encode(UUID.randomUUID().toString());
-        usuarios.saveAndFlush(new Usuario("Editor", "Test", "editor@maqueta.test", hash, Rol.EDITOR));
+        Usuario editor = usuarios.saveAndFlush(new Usuario("Editor", "Test", "editor@maqueta.test", hash, Rol.EDITOR));
+        ar.edu.ifts2.support.PanelRoleFixtures.grantAll(jdbc, editor.getId());
         usuarios.saveAndFlush(new Usuario("Admin", "Test", "admin@maqueta.test", hash, Rol.ADMIN));
         Usuario inactive = new Usuario("Inactive", "Test", "inactive@maqueta.test", hash, Rol.EDITOR);
         inactive.desactivar();

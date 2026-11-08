@@ -33,7 +33,7 @@ import java.util.UUID;
                 content = @Content(schema = @Schema(implementation = ApiError.class))),
         @ApiResponse(responseCode = "401", description = "JWT ausente o invalido",
                 content = @Content(schema = @Schema(implementation = ApiError.class))),
-        @ApiResponse(responseCode = "403", description = "Requiere ADMIN o EDITOR",
+        @ApiResponse(responseCode = "403", description = "Requiere ADMIN o EDITOR con Ver/Gestionar en contenido",
                 content = @Content(schema = @Schema(implementation = ApiError.class))),
         @ApiResponse(responseCode = "404", description = "Noticia inexistente",
                 content = @Content(schema = @Schema(implementation = ApiError.class))),

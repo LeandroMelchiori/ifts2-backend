@@ -33,7 +33,7 @@ La migracion nueva no inventa contenido, carreras, autoridades ni datos de conta
 
 ## Reglas comunes
 
-- ADMIN y EDITOR administran todo el contenido. Usuarios sigue siendo exclusivo de ADMIN.
+- ADMIN administra todo el contenido. EDITOR requiere Ver para GET/HEAD y Gestionar para mutaciones, en contenido (eventos) o informacion (resto de estos modulos). Usuarios sigue siendo exclusivo de ADMIN. Ver [permisos](cuenta-y-permisos.md).
 - Crear genera BORRADOR; publicar requiere una operacion explicita de estado.
 - Estados: `BORRADOR`, `PUBLICADA`, `ARCHIVADA`.
 - BORRADOR y ARCHIVADA no aparecen en consultas publicas. El detalle devuelve 404,

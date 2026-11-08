@@ -7,7 +7,7 @@ destacados mixtos; ver [Meta / Instagram](meta-instagram.md) para esos contratos
 ## Decisiones y compatibilidad
 
 - Se mantiene login por email en `POST /api/auth/login`, no por el usuario de demo.
-- ADMIN y EDITOR gestionan contenido; administracion de usuarios sigue siendo ADMIN.
+- ADMIN tiene acceso total; EDITOR requiere Ver/Gestionar en la seccion correspondiente. Usuarios y panel-roles son exclusivos de ADMIN. Ver [permisos](cuenta-y-permisos.md).
 - Noticias funciona como publicacion institucional por area; no se agrega otro
   CRUD de "contenido" duplicado. ALUMNOS es una audiencia, no gestion academica.
 - Los registros nuevos de la maqueta usan UUID existentes de la API, no slugs.
@@ -76,8 +76,8 @@ booleano de "destacado" que pueda contradecir la lista ordenada.
 | Metodo | Endpoint | Acceso |
 | --- | --- | --- |
 | GET | `/api/destacados` | Publico |
-| GET | `/api/admin/destacados` | ADMIN/EDITOR |
-| PUT | `/api/admin/destacados` | ADMIN/EDITOR |
+| GET | `/api/admin/destacados` | ADMIN o permiso Ver/Gestionar en destacados segun metodo |
+| PUT | `/api/admin/destacados` | ADMIN o permiso Ver/Gestionar en destacados segun metodo |
 
 PUT reemplaza atomicamente la lista completa. El orden del array establece
 posiciones 1..6; no se mandan posiciones individuales:

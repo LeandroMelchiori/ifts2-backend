@@ -15,6 +15,10 @@ import java.util.UUID;
 public interface UsuarioRepository extends JpaRepository<Usuario, UUID> {
     Optional<Usuario> findByEmail(String email);
 
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select u from Usuario u where u.email = :email")
+    Optional<Usuario> findByEmailForUpdate(@Param("email") String email);
+
     boolean existsByEmail(String email);
 
     boolean existsByEmailAndIdNot(String email, UUID id);

@@ -9,7 +9,7 @@ import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
 import java.util.UUID;
 
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
+import static ar.edu.ifts2.support.PanelRoleFixtures.panelEditor;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -44,15 +44,15 @@ class MaquetaSinStorageIntegrationTest extends PostgresIntegrationTest {
         String path = "/api/admin/eventos/" + event + "/fotos";
         mvc.perform(multipart(path).file(new MockMultipartFile("file", "x.png", "image/png", PNG))
                 .file(new MockMultipartFile("datos", "", "application/json", "{\"etiqueta\":\"Nueva\",\"orden\":1}".getBytes(java.nio.charset.StandardCharsets.UTF_8)))
-                .with(user("editor").roles("EDITOR"))).andExpect(status().isServiceUnavailable());
+                .with(panelEditor())).andExpect(status().isServiceUnavailable());
         mvc.perform(multipart(HttpMethod.PUT, path + "/" + photo + "/archivo")
-                .file(new MockMultipartFile("file", "x.png", "image/png", PNG)).with(user("editor").roles("EDITOR")))
+                .file(new MockMultipartFile("file", "x.png", "image/png", PNG)).with(panelEditor()))
                 .andExpect(status().isServiceUnavailable());
-        mvc.perform(delete(path + "/" + photo).with(user("editor").roles("EDITOR"))).andExpect(status().isServiceUnavailable());
-        mvc.perform(put(path + "/" + photo).with(user("editor").roles("EDITOR"))
+        mvc.perform(delete(path + "/" + photo).with(panelEditor())).andExpect(status().isServiceUnavailable());
+        mvc.perform(put(path + "/" + photo).with(panelEditor())
                 .contentType(MediaType.APPLICATION_JSON).content("{\"etiqueta\":\"Editada\",\"orden\":1}"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.objectKey").value(key))
                 .andExpect(jsonPath("$.etiqueta").value("Editada"));
-        mvc.perform(get(path).with(user("editor").roles("EDITOR"))).andExpect(jsonPath("$.length()").value(1));
+        mvc.perform(get(path).with(panelEditor())).andExpect(jsonPath("$.length()").value(1));
     }
 }

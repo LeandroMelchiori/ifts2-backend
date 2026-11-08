@@ -71,6 +71,7 @@ class AuthSecurityIntegrationTest extends PostgresIntegrationTest {
         String hash = passwordEncoder.encode(password);
         admin = repository.saveAndFlush(new Usuario("Admin", "Prueba", "admin@example.test", hash, Rol.ADMIN));
         editor = repository.saveAndFlush(new Usuario("Editor", "Prueba", "editor@example.test", hash, Rol.EDITOR));
+        ar.edu.ifts2.support.PanelRoleFixtures.grantAll(new org.springframework.jdbc.core.JdbcTemplate(flyway.getConfiguration().getDataSource()), editor.getId());
         Usuario inactive = new Usuario("Inactivo", "Prueba", "inactive@example.test", hash, Rol.EDITOR);
         inactive.desactivar();
         repository.saveAndFlush(inactive);

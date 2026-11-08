@@ -33,14 +33,14 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/admin/noticias")
-@Tag(name = "News Administration", description = "Gestion de noticias por ADMIN y EDITOR")
+@Tag(name = "News Administration", description = "ADMIN o EDITOR con Ver/Gestionar en contenido")
 @SecurityRequirement(name = "bearerAuth")
 @ApiResponses({
         @ApiResponse(responseCode = "400", description = "Request, UUID, estado o paginacion invalidos",
                 content = @Content(schema = @Schema(implementation = ApiError.class))),
         @ApiResponse(responseCode = "401", description = "JWT ausente, invalido o cuenta sin acceso",
                 content = @Content(schema = @Schema(implementation = ApiError.class))),
-        @ApiResponse(responseCode = "403", description = "Requiere rol ADMIN o EDITOR",
+        @ApiResponse(responseCode = "403", description = "Requiere ADMIN o EDITOR con Ver/Gestionar en contenido",
                 content = @Content(schema = @Schema(implementation = ApiError.class))),
         @ApiResponse(responseCode = "500", description = "Error interno",
                 content = @Content(schema = @Schema(implementation = ApiError.class)))

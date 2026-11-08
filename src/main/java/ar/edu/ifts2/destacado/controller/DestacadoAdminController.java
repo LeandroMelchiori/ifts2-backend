@@ -19,7 +19,7 @@ import java.util.List;
 @ApiResponses({
         @ApiResponse(responseCode = "400", description = "Lista invalida o mas de seis elementos", content = @Content(schema = @Schema(implementation = ApiError.class))),
         @ApiResponse(responseCode = "401", description = "JWT ausente o invalido", content = @Content(schema = @Schema(implementation = ApiError.class))),
-        @ApiResponse(responseCode = "403", description = "Requiere ADMIN o EDITOR", content = @Content(schema = @Schema(implementation = ApiError.class))),
+        @ApiResponse(responseCode = "403", description = "Requiere ADMIN o EDITOR con Ver/Gestionar en destacados", content = @Content(schema = @Schema(implementation = ApiError.class))),
         @ApiResponse(responseCode = "404", description = "Contenido inexistente", content = @Content(schema = @Schema(implementation = ApiError.class))),
         @ApiResponse(responseCode = "409", description = "Duplicado o contenido sin publicar", content = @Content(schema = @Schema(implementation = ApiError.class)))
 })

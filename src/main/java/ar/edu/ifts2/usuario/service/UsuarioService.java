@@ -10,6 +10,7 @@ import ar.edu.ifts2.usuario.dto.UsuarioResponse;
 import ar.edu.ifts2.usuario.entity.Rol;
 import ar.edu.ifts2.usuario.entity.Usuario;
 import ar.edu.ifts2.usuario.repository.UsuarioRepository;
+import ar.edu.ifts2.panelrol.repository.PanelRolRepository;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -23,10 +24,12 @@ import java.util.UUID;
 public class UsuarioService {
     private final UsuarioRepository repository;
     private final PasswordEncoder passwordEncoder;
+    private final PanelRolRepository panelRoles;
 
-    public UsuarioService(UsuarioRepository repository, PasswordEncoder passwordEncoder) {
+    public UsuarioService(UsuarioRepository repository, PasswordEncoder passwordEncoder, PanelRolRepository panelRoles) {
         this.repository = repository;
         this.passwordEncoder = passwordEncoder;
+        this.panelRoles = panelRoles;
     }
 
     public PageResponse<UsuarioResponse> listar(int page, int size) {
@@ -65,6 +68,10 @@ public class UsuarioService {
             throw duplicateEmail();
         }
         usuario.actualizar(request.nombre(), request.apellido(), request.email(), request.rol(), request.activo());
+        // Evitar permisos latentes si un ADMIN es degradado a EDITOR posteriormente.
+        if (request.rol() == Rol.ADMIN) {
+            panelRoles.findByUsuarioId(id).ifPresent(panelRoles::delete);
+        }
         repository.flush();
         return UsuarioResponse.from(usuario);
     }

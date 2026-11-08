@@ -1,5 +1,6 @@
 package ar.edu.ifts2.security;
 
+import ar.edu.ifts2.panelrol.entity.SeccionPanel;
 import jakarta.servlet.DispatcherType;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -31,9 +32,12 @@ public class SecurityConfig {
                 .logout(AbstractHttpConfigurer::disable)
                 .requestCache(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(authorize -> authorize
+                .authorizeHttpRequests(authorize -> {
+                    authorize
                         .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
+                        .requestMatchers("/api/auth/me", "/api/auth/me/**").authenticated()
+                        .requestMatchers(HttpMethod.POST, "/api/auth/verify-password").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/meta/posts").permitAll()
                         .requestMatchers(HttpMethod.HEAD, "/api/meta/posts").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/destacados", "/api/galeria", "/api/eventos/*/fotos").permitAll()
@@ -48,9 +52,26 @@ public class SecurityConfig {
                                 "/api/documentos", "/api/documentos/*", "/api/institucion").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/health", "/v3/api-docs", "/v3/api-docs/**",
                                 "/swagger-ui.html", "/swagger-ui/**").permitAll()
-                        .requestMatchers("/api/admin/usuarios", "/api/admin/usuarios/**").hasRole("ADMIN")
-                        .requestMatchers("/api/admin", "/api/admin/**").hasAnyRole("ADMIN", "EDITOR")
-                        .anyRequest().denyAll())
+                        .requestMatchers("/api/admin/usuarios", "/api/admin/usuarios/**",
+                                "/api/admin/panel-roles", "/api/admin/panel-roles/**",
+                                "/api/admin/storage/test", "/api/admin/storage/test/**").hasRole("ADMIN");
+                    for (var section : SeccionPanel.values()) {
+                        authorize.requestMatchers(HttpMethod.GET, section.pathMatchers())
+                                .hasAnyAuthority("ROLE_ADMIN", section.viewAuthority());
+                        authorize.requestMatchers(HttpMethod.HEAD, section.pathMatchers())
+                                .hasAnyAuthority("ROLE_ADMIN", section.viewAuthority());
+                        authorize.requestMatchers(section.pathMatchers())
+                                .hasAnyAuthority("ROLE_ADMIN", section.manageAuthority());
+                    }
+                    String[] anyView = java.util.stream.Stream.concat(java.util.stream.Stream.of("ROLE_ADMIN"),
+                            java.util.Arrays.stream(SeccionPanel.values()).map(SeccionPanel::viewAuthority))
+                            .toArray(String[]::new);
+                    authorize.requestMatchers(HttpMethod.GET, "/api/admin/test", "/api/admin/storage/usage").hasAnyAuthority(anyView)
+                            .requestMatchers(HttpMethod.HEAD, "/api/admin/test", "/api/admin/storage/usage").hasAnyAuthority(anyView)
+                            // Una ruta administrativa nueva no queda abierta a todos los EDITOR.
+                            .requestMatchers("/api/admin", "/api/admin/**").hasRole("ADMIN")
+                            .anyRequest().denyAll();
+                })
                 .exceptionHandling(exceptions -> exceptions
                         .authenticationEntryPoint(errors).accessDeniedHandler(errors))
                 .oauth2ResourceServer(resourceServer -> resourceServer

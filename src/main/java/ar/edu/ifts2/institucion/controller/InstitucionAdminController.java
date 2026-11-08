@@ -22,7 +22,7 @@ import java.util.UUID;
 @ApiResponses({
         @ApiResponse(responseCode = "400", description = "Request, parametros o UUID invalidos", content = @Content(schema = @Schema(implementation = ApiError.class))),
         @ApiResponse(responseCode = "401", description = "JWT ausente o invalido", content = @Content(schema = @Schema(implementation = ApiError.class))),
-        @ApiResponse(responseCode = "403", description = "Requiere ADMIN o EDITOR", content = @Content(schema = @Schema(implementation = ApiError.class))),
+        @ApiResponse(responseCode = "403", description = "Requiere ADMIN o EDITOR con Ver/Gestionar en informacion", content = @Content(schema = @Schema(implementation = ApiError.class))),
         @ApiResponse(responseCode = "404", description = "Recurso no encontrado", content = @Content(schema = @Schema(implementation = ApiError.class))),
         @ApiResponse(responseCode = "409", description = "Conflicto con los datos o el estado actual", content = @Content(schema = @Schema(implementation = ApiError.class))),
         @ApiResponse(responseCode = "500", description = "Error interno", content = @Content(schema = @Schema(implementation = ApiError.class)))

@@ -15,7 +15,7 @@ import java.util.UUID;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
+import static ar.edu.ifts2.support.PanelRoleFixtures.panelEditor;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -43,23 +43,23 @@ class ContenidoSinStorageIntegrationTest extends PostgresIntegrationTest {
     @ParameterizedTest
     @MethodSource("contentWithFiles")
     void contentRemainsAvailableAndFileOperationsFailClearlyWithoutProvider(String module, String attachment, String json) throws Exception {
-        var result = mvc.perform(post("/api/admin/" + module).with(user("editor").roles("EDITOR"))
+        var result = mvc.perform(post("/api/admin/" + module).with(panelEditor())
                         .contentType(MediaType.APPLICATION_JSON).content(json)).andExpect(status().isCreated()).andReturn();
         String id = mapper.readTree(result.getResponse().getContentAsString()).get("id").asText();
         String base = "/api/admin/" + module + "/" + id;
         mvc.perform(multipart(HttpMethod.PUT, base + "/" + attachment)
-                        .file(new MockMultipartFile("file", "test", "image/png", new byte[]{1})).with(user("editor").roles("EDITOR")))
+                        .file(new MockMultipartFile("file", "test", "image/png", new byte[]{1})).with(panelEditor()))
                 .andExpect(status().isServiceUnavailable()).andExpect(jsonPath("$.status").value(503));
-        mvc.perform(delete(base + "/" + attachment).with(user("editor").roles("EDITOR"))).andExpect(status().isNoContent());
+        mvc.perform(delete(base + "/" + attachment).with(panelEditor())).andExpect(status().isNoContent());
         String key = module + "/" + UUID.randomUUID() + (module.equals("documentos") ? ".pdf" : ".png");
         jdbc.update("update " + module + " set " + attachment + "_object_key = ? where id = ?", key, UUID.fromString(id));
-        mvc.perform(put(base + "/estado").with(user("editor").roles("EDITOR")).contentType(MediaType.APPLICATION_JSON).content("{\"estado\":\"PUBLICADA\"}"))
+        mvc.perform(put(base + "/estado").with(panelEditor()).contentType(MediaType.APPLICATION_JSON).content("{\"estado\":\"PUBLICADA\"}"))
                 .andExpect(status().isOk());
         mvc.perform(get("/api/" + module + "/" + id)).andExpect(status().isOk()).andExpect(jsonPath("$." + attachment + "Url").isEmpty());
         mvc.perform(get("/api/" + module)).andExpect(status().isOk());
-        mvc.perform(put(base + "/estado").with(user("editor").roles("EDITOR")).contentType(MediaType.APPLICATION_JSON).content("{\"estado\":\"BORRADOR\"}"))
+        mvc.perform(put(base + "/estado").with(panelEditor()).contentType(MediaType.APPLICATION_JSON).content("{\"estado\":\"BORRADOR\"}"))
                 .andExpect(status().isOk());
-        mvc.perform(delete(base + "/" + attachment).with(user("editor").roles("EDITOR")))
+        mvc.perform(delete(base + "/" + attachment).with(panelEditor()))
                 .andExpect(status().isServiceUnavailable());
         assertThat(jdbc.queryForObject("select " + attachment + "_object_key from " + module + " where id=?", String.class, UUID.fromString(id))).isEqualTo(key);
     }

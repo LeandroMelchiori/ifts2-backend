@@ -24,7 +24,7 @@ import java.util.*;
 @ApiResponses({
         @ApiResponse(responseCode = "400", description = "Datos o archivo invalidos", content = @Content(schema = @Schema(implementation = ApiError.class))),
         @ApiResponse(responseCode = "401", description = "JWT ausente o invalido", content = @Content(schema = @Schema(implementation = ApiError.class))),
-        @ApiResponse(responseCode = "403", description = "Requiere ADMIN o EDITOR", content = @Content(schema = @Schema(implementation = ApiError.class))),
+        @ApiResponse(responseCode = "403", description = "Requiere ADMIN o EDITOR con Ver/Gestionar en contenido", content = @Content(schema = @Schema(implementation = ApiError.class))),
         @ApiResponse(responseCode = "404", description = "Evento o foto inexistentes", content = @Content(schema = @Schema(implementation = ApiError.class))),
         @ApiResponse(responseCode = "409", description = "Limite de 50 fotos alcanzado", content = @Content(schema = @Schema(implementation = ApiError.class))),
         @ApiResponse(responseCode = "413", description = "Archivo demasiado grande", content = @Content(schema = @Schema(implementation = ApiError.class))),

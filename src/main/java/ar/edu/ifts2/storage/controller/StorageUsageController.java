@@ -16,6 +16,6 @@ public class StorageUsageController {
 
     @GetMapping("/api/admin/storage/usage")
     @Operation(summary = "Consultar bytes del bucket institucional",
-            description = "ADMIN o EDITOR. Consulta metadatos reales del proveedor, no estima por cantidad de fotos. limitBytes es un presupuesto configurable, null si no se definio; no representa la cuota total de Supabase. Medicion no atomica ante cargas concurrentes. 503 si no disponible; nunca devuelve cero inventado.")
+            description = "ADMIN o EDITOR con al menos un permiso Ver. Consulta metadatos reales del proveedor, no estima por cantidad de fotos. limitBytes es un presupuesto configurable, null si no se definio; no representa la cuota total de Supabase. Medicion no atomica ante cargas concurrentes. 503 si no disponible; nunca devuelve cero inventado.")
     public StorageUsageResponse consultar() { return service.consultar(); }
 }

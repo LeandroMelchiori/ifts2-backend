@@ -1,4 +1,6 @@
 /target/
+/AGENTS.md
+/agents.md
 /.tools/
 /.idea/
 /.vscode/
@@ -18,3 +20,8 @@ application-local.*
 application-secrets.*
 credentials.*
 /secrets/
+/backups/
+*.dump
+*.backup
+*.partial
+*.pgpass

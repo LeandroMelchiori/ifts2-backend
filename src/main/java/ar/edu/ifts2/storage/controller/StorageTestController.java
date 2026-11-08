@@ -24,12 +24,12 @@ import java.io.IOException;
 @RestController
 @RequestMapping("/api/admin/storage/test")
 @ConditionalOnProperty(prefix = "app.storage", name = "test-endpoints-enabled", havingValue = "true")
-@Tag(name = "Storage", description = "Endpoints TEMPORALES de verificacion; solo namespace pruebas; ADMIN o EDITOR")
+@Tag(name = "Storage", description = "Endpoints TEMPORALES de verificacion; solo namespace pruebas; solo ADMIN")
 @SecurityRequirement(name = "bearerAuth")
 @ApiResponses({
         @ApiResponse(responseCode = "400", description = "Archivo, firma binaria o objectKey invalidos", content = @Content(schema = @Schema(implementation = ApiError.class))),
         @ApiResponse(responseCode = "401", description = "JWT ausente o invalido", content = @Content(schema = @Schema(implementation = ApiError.class))),
-        @ApiResponse(responseCode = "403", description = "Requiere ADMIN o EDITOR", content = @Content(schema = @Schema(implementation = ApiError.class))),
+        @ApiResponse(responseCode = "403", description = "Requiere solo ADMIN", content = @Content(schema = @Schema(implementation = ApiError.class))),
         @ApiResponse(responseCode = "502", description = "Fallo del proveedor de storage", content = @Content(schema = @Schema(implementation = ApiError.class)))
 })
 public class StorageTestController {

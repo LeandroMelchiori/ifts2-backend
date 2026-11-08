@@ -78,6 +78,7 @@ class NoticiaIntegrationTest extends PostgresIntegrationTest {
         String hash = encoder.encode(UUID.randomUUID().toString());
         Usuario admin = usuarios.saveAndFlush(new Usuario("Admin", "Test", "admin@example.test", hash, Rol.ADMIN));
         Usuario editor = usuarios.saveAndFlush(new Usuario("Editor", "Test", "editor@example.test", hash, Rol.EDITOR));
+        ar.edu.ifts2.support.PanelRoleFixtures.grantAll(jdbc, editor.getId());
         Usuario inactive = new Usuario("Inactive", "Test", "inactive@example.test", hash, Rol.EDITOR);
         inactive.desactivar();
         usuarios.saveAndFlush(inactive);

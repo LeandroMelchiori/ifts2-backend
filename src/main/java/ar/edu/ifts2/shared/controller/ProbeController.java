@@ -17,7 +17,7 @@ public class ProbeController {
     }
 
     @GetMapping("/api/admin/test")
-    @Operation(summary = "Prueba temporal de acceso ADMIN o EDITOR")
+    @Operation(summary = "Prueba temporal de acceso ADMIN o EDITOR con permiso Ver")
     @SecurityRequirement(name = "bearerAuth")
     public StatusResponse adminTest() {
         return new StatusResponse("OK");

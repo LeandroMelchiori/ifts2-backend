@@ -49,9 +49,9 @@ class StorageEndpointIntegrationTest extends PostgresIntegrationTest {
         when(storage.resolvePublicUrl(key)).thenReturn(url);
     }
 
-    @ParameterizedTest
-    @ValueSource(strings = {"ADMIN", "EDITOR"})
-    void bothRolesCanUploadResolveAndDelete(String role) throws Exception {
+    @Test
+    void adminCanUploadResolveAndDelete() throws Exception {
+        String role = "ADMIN";
         mvc.perform(multipart("/api/admin/storage/test").file(file()).with(user("test").roles(role)))
                 .andExpect(status().isCreated()).andExpect(jsonPath("$.objectKey").value(key))
                 .andExpect(jsonPath("$.publicUrl").value(url.toString()))
@@ -97,7 +97,7 @@ class StorageEndpointIntegrationTest extends PostgresIntegrationTest {
             case PROVIDER_FAILURE -> 502;
             case STORAGE_DISABLED, INVENTORY_UNAVAILABLE -> 503;
         };
-        mvc.perform(multipart("/api/admin/storage/test").file(file()).with(user("editor").roles("EDITOR")))
+        mvc.perform(multipart("/api/admin/storage/test").file(file()).with(user("admin").roles("ADMIN")))
                 .andExpect(status().is(expected)).andExpect(jsonPath("$.status").value(expected))
                 .andExpect(jsonPath("$.timestamp").exists()).andExpect(jsonPath("$.trace").doesNotExist())
                 .andExpect(jsonPath("$.path").value("/api/admin/storage/test"));

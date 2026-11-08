@@ -66,6 +66,7 @@ class MetaIntegrationTest extends PostgresIntegrationTest {
     void users() {
         String hash = encoder.encode(UUID.randomUUID().toString());
         Usuario editor = usuarios.saveAndFlush(new Usuario("Meta", "Editor", "editor@meta.test", hash, Rol.EDITOR));
+        ar.edu.ifts2.support.PanelRoleFixtures.grantAll(jdbc, editor.getId());
         Usuario owner = usuarios.saveAndFlush(new Usuario("Meta", "Admin", "admin@meta.test", hash, Rol.ADMIN));
         token = tokens.issue(editor.getId(), Rol.EDITOR).accessToken();
         admin = tokens.issue(owner.getId(), Rol.ADMIN).accessToken();
@@ -331,7 +332,7 @@ class MetaIntegrationTest extends PostgresIntegrationTest {
             UUID id = UUID.randomUUID();
             jdbc.update("insert into " + schema + ".noticias (id,titulo,resumen,contenido,estado,created_at,updated_at,fecha) values (?, 'Titulo','Resumen','Contenido','BORRADOR',now(),now(),current_date)", id);
             jdbc.update("insert into " + schema + ".destacados (posicion,noticia_id) values (1,?)", id);
-            var flyway = Flyway.configure().dataSource(jdbc.getDataSource()).schemas(schema).defaultSchema(schema).load();
+            var flyway = Flyway.configure().dataSource(jdbc.getDataSource()).schemas(schema).defaultSchema(schema).target("6").load();
             flyway.migrate();
             assertThat(flyway.info().current().getVersion().getVersion()).isEqualTo("6");
             assertThat(jdbc.queryForObject("select noticia_id from " + schema + ".destacados where posicion=1", UUID.class)).isEqualTo(id);

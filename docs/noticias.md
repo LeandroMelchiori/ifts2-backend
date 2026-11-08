@@ -30,7 +30,7 @@ adjuntos, autores publicos, categorias adicionales a las areas, programacion ni
 historial de revisiones.
 
 Las noticias se crean siempre como BORRADOR. Publicar es una operacion explicita
-disponible para ADMIN y EDITOR. Ambos roles pueden administrar todas las noticias.
+disponible para ADMIN o EDITOR con Gestionar en contenido. Para lectura administrativa, EDITOR necesita Ver en contenido. Ver [permisos](cuenta-y-permisos.md).
 Se puede pasar entre cualquiera de los tres estados: retirar a BORRADOR permite
 volver a editar fuera de la vista publica; ARCHIVADA conserva el contenido para
 recuperarlo posteriormente. No hay eliminacion fisica ni DELETE de noticias;
@@ -58,13 +58,13 @@ modificar noticias existentes. Una restriccion limita las claves al namespace
 | --- | --- | --- |
 | GET | `/api/noticias` | Publico, 200, pagina de resumenes publicados |
 | GET | `/api/noticias/{id}` | Publico, 200, detalle completo publicado |
-| GET | `/api/admin/noticias` | ADMIN/EDITOR, 200, pagina administrativa |
-| GET | `/api/admin/noticias/{id}` | ADMIN/EDITOR, 200, detalle de cualquier estado |
-| POST | `/api/admin/noticias` | ADMIN/EDITOR, 201, borrador y header Location |
-| PUT | `/api/admin/noticias/{id}` | ADMIN/EDITOR, 200, reemplazo de contenido |
-| PUT | `/api/admin/noticias/{id}/estado` | ADMIN/EDITOR, 200, cambio editorial |
-| PUT | `/api/admin/noticias/{id}/portada` | ADMIN/EDITOR, multipart `file`, 200, nueva portada |
-| DELETE | `/api/admin/noticias/{id}/portada` | ADMIN/EDITOR, 204, quitar portada |
+| GET | `/api/admin/noticias` | ADMIN o Ver en contenido, 200, pagina administrativa |
+| GET | `/api/admin/noticias/{id}` | ADMIN o Ver en contenido, 200, detalle de cualquier estado |
+| POST | `/api/admin/noticias` | ADMIN o Gestionar en contenido, 201, borrador y header Location |
+| PUT | `/api/admin/noticias/{id}` | ADMIN o Gestionar en contenido, 200, reemplazo de contenido |
+| PUT | `/api/admin/noticias/{id}/estado` | ADMIN o Gestionar en contenido, 200, cambio editorial |
+| PUT | `/api/admin/noticias/{id}/portada` | ADMIN o Gestionar en contenido, multipart `file`, 200, nueva portada |
+| DELETE | `/api/admin/noticias/{id}/portada` | ADMIN o Gestionar en contenido, 204, quitar portada |
 
 Ambos listados usan `page=0` y `size=20` por defecto; `0 <= page <= 1000000` y `1 <= size <= 100`.
 El administrativo admite `estado=BORRADOR`, `PUBLICADA` o `ARCHIVADA`; omitirlo
@@ -95,7 +95,7 @@ Errores con el formato comun de `ApiError`:
 
 `PUT /api/admin/noticias/{id}/portada` acepta multipart con una parte `file`.
 Devuelve `{ "objectKey": "noticias/{uuid}.png", "publicUrl": "..." }` con HTTP 200,
-tanto en la primera subida como al reemplazar. ADMIN y EDITOR pueden realizar
+tanto en la primera subida como al reemplazar. ADMIN o EDITOR con Gestionar en contenido pueden realizar
 la operacion en cualquier estado editorial. No se altera la publicacion.
 
 Se reutiliza `FileValidator`: JPEG, PNG y WEBP, MIME y firma binaria coherentes,

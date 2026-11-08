@@ -49,7 +49,7 @@ No se persisten tokens en las tablas del CMS ni se reciben desde el frontend.
 
 ## Endpoints
 
-Todas las rutas administrativas admiten ADMIN y EDITOR. Gestion de usuarios sigue
+Las rutas Meta admiten ADMIN o EDITOR con Ver (GET/HEAD) o Gestionar (mutaciones) en instagram. Ver [permisos](cuenta-y-permisos.md). Gestion de usuarios sigue
 reservada a ADMIN. JWT ausente/invalido: 401; rol no autorizado: 403.
 
 | Metodo | Ruta | Resultado |

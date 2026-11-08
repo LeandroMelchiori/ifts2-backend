@@ -20,7 +20,7 @@ public class MetaAdminController {
 
     @PostMapping("/sync")
     @Operation(summary = "Importar publicaciones recientes de Instagram",
-            description = "ADMIN o EDITOR. Nuevas ocultas; conserva visibilidad, destacados y archivos. Importacion acotada por META_MAX_POSTS. 503 si Meta esta deshabilitado o su token requiere revision.")
+            description = "ADMIN o EDITOR con Gestionar en instagram. Nuevas ocultas; conserva visibilidad, destacados y archivos. Importacion acotada por META_MAX_POSTS. 503 si Meta esta deshabilitado o su token requiere revision.")
     public MetaSyncResponse sync() { return service.sincronizar(); }
 
     @GetMapping("/posts")

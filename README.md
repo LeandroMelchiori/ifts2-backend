@@ -8,6 +8,10 @@ La gestion academica corresponde a SIU Guarani. No se implementan Docker, OCI,
 refresh tokens ni microservicios. Los contratos se detallan en
 [Noticias](docs/noticias.md), [Modulos institucionales](docs/contenido-institucional.md)
 y [Contrato de la maqueta](docs/maqueta-cms.md).
+Mi cuenta y las asignaciones individuales Ver/Gestionar se describen en
+[Cuenta y permisos del panel](docs/cuenta-y-permisos.md). ADMIN conserva acceso
+total; EDITOR necesita permisos por seccion. V8 no asigna permisos automaticamente
+a cuentas existentes: coordinar la carga de asignaciones y el cambio del frontend.
 La ampliacion de la maqueta incluye areas/Novedades, destacados web ordenados,
 datos del sitio y galerias de eventos. Incluye integracion configurable de Meta/Instagram,
 visibilidad persistida, destacados mixtos y medicion del bucket de almacenamiento.
@@ -55,10 +59,17 @@ Auth. La integracion HTTP de archivos esta aislada en el modulo de storage.
 
 Flyway aplica `V1__crear_usuarios.sql`, `V2__crear_noticias.sql`,
 `V3__agregar_portada_noticias.sql`, `V4__crear_contenido_institucional.sql` y
-`V5__alinear_cms_con_maqueta.sql` y `V6__integrar_publicaciones_meta.sql` desde
+`V5__alinear_cms_con_maqueta.sql`, `V6__integrar_publicaciones_meta.sql` y
+`V7__proteger_tablas_cms.sql` y `V8__crear_roles_panel.sql` desde
 `src/main/resources/db/migration`. Hibernate usa `ddl-auto=validate`: comprueba
 el esquema pero no lo crea ni modifica. Para cambios posteriores agregar nuevas
-migraciones a partir de `V6__...sql`, sin editar las ya aplicadas.
+migraciones a partir de `V9__...sql`, sin editar las ya aplicadas.
+
+V7 restringe el acceso directo de los roles de Supabase a las tablas del CMS y
+activa RLS sin impedir el acceso del propietario JDBC. Antes de desplegar, revisar
+[Seguridad, respaldos y recuperacion](docs/operacion-segura.md): incluye auditoria
+de permisos de solo lectura, respaldo PostgreSQL y ensayo de restauracion.
+Los archivos de Storage necesitan una copia separada; un dump no los recupera.
 
 ## Configuracion
 
@@ -185,7 +196,7 @@ En equipos con Maven instalado tambien se puede usar `mvn clean verify`.
 Ademas de Noticias, las colecciones `eventos`, `carreras`, `autoridades`,
 `enlaces` y `documentos` tienen GET publico de listado/detalle y GET/POST/PUT
 administrativos bajo `/api/admin/{coleccion}`. Publicar/retirar/archivar usa
-`PUT /api/admin/{coleccion}/{id}/estado`. ADMIN y EDITOR pueden administrarlas;
+`PUT /api/admin/{coleccion}/{id}/estado`. ADMIN puede administrarlas; EDITOR requiere Ver/Gestionar en la seccion correspondiente;
 las lecturas publicas incluyen exclusivamente PUBLICADA.
 
 Institucion usa GET publico en `/api/institucion`, GET/PUT administrativo en
@@ -203,7 +214,14 @@ Estas rutas son permanentes y no requieren habilitar los endpoints temporales.
 | --- | --- | --- |
 | GET | `/api/health` | Publico, devuelve `{"status":"UP"}` |
 | POST | `/api/auth/login` | Publico, valida email y password |
-| GET | `/api/admin/test` | Temporal, ADMIN o EDITOR |
+| GET | `/api/auth/me` | Cuenta autenticada, incluso sin asignacion de panel |
+| PUT | `/api/auth/me/email` | Cambio propio con currentPassword |
+| PUT | `/api/auth/me/password` | Cambio propio con currentPassword |
+| POST | `/api/auth/verify-password` | Verificar password; 204/401, sin emitir JWT |
+| GET | `/api/auth/me/panel-permissions` | Permisos efectivos de DB |
+| GET/POST | `/api/admin/panel-roles` | ADMIN; POST requiere currentPassword |
+| PUT/DELETE | `/api/admin/panel-roles/{id}` | ADMIN; currentPassword obligatorio en body |
+| GET | `/api/admin/test` | Temporal, ADMIN o EDITOR con algun permiso Ver |
 | GET | `/api/admin/usuarios/test` | Temporal, solo ADMIN |
 | GET | `/api/admin/usuarios?page=0&size=20` | ADMIN; listado paginado |
 | GET | `/api/admin/usuarios/{id}` | ADMIN; detalle por UUID |
@@ -212,16 +230,16 @@ Estas rutas son permanentes y no requieren habilitar los endpoints temporales.
 | PUT | `/api/admin/usuarios/{id}/password` | ADMIN; restablecer password |
 | GET | `/api/noticias` | Publico; resumenes paginados de noticias publicadas |
 | GET | `/api/noticias/{id}` | Publico; detalle publicado por UUID |
-| GET | `/api/admin/noticias` | ADMIN/EDITOR; paginado y filtro opcional por estado |
-| GET | `/api/admin/noticias/{id}` | ADMIN/EDITOR; detalle en cualquier estado |
-| POST | `/api/admin/noticias` | ADMIN/EDITOR; crear borrador |
-| PUT | `/api/admin/noticias/{id}` | ADMIN/EDITOR; reemplazar titulo, resumen y contenido |
-| PUT | `/api/admin/noticias/{id}/estado` | ADMIN/EDITOR; publicar, retirar o archivar |
-| PUT | `/api/admin/noticias/{id}/portada` | ADMIN/EDITOR; multipart `file`, subir/reemplazar imagen |
-| DELETE | `/api/admin/noticias/{id}/portada` | ADMIN/EDITOR; quitar portada |
-| POST | `/api/admin/storage/test` | Temporal y optativo; ADMIN o EDITOR; multipart |
-| DELETE | `/api/admin/storage/test?objectKey=...` | Temporal y optativo; ADMIN o EDITOR |
-| GET | `/api/admin/storage/test/url?objectKey=...` | Temporal y optativo; ADMIN o EDITOR |
+| GET | `/api/admin/noticias` | ADMIN o Ver en contenido; paginado y filtro opcional por estado |
+| GET | `/api/admin/noticias/{id}` | ADMIN o Ver en contenido; detalle en cualquier estado |
+| POST | `/api/admin/noticias` | ADMIN o Gestionar en contenido; crear borrador |
+| PUT | `/api/admin/noticias/{id}` | ADMIN o Gestionar en contenido; reemplazar titulo, resumen y contenido |
+| PUT | `/api/admin/noticias/{id}/estado` | ADMIN o Gestionar en contenido; publicar, retirar o archivar |
+| PUT | `/api/admin/noticias/{id}/portada` | ADMIN o Gestionar en contenido; multipart `file`, subir/reemplazar imagen |
+| DELETE | `/api/admin/noticias/{id}/portada` | ADMIN o Gestionar en contenido; quitar portada |
+| POST | `/api/admin/storage/test` | Temporal y optativo; solo ADMIN; multipart |
+| DELETE | `/api/admin/storage/test?objectKey=...` | Temporal y optativo; solo ADMIN |
+| GET | `/api/admin/storage/test/url?objectKey=...` | Temporal y optativo; solo ADMIN |
 | GET | `/v3/api-docs` | OpenAPI publico, deshabilitable |
 | GET | `/swagger-ui/index.html` | Swagger UI publico, deshabilitable |
 
@@ -330,7 +348,7 @@ $env:STORAGE_TEST_ENDPOINTS_ENABLED = 'true'
 Para verificar desde Swagger:
 
 1. Abrir `http://localhost:8080/swagger-ui/index.html` e iniciar sesion mediante
-   `/api/auth/login` con un ADMIN o EDITOR.
+   `/api/auth/login` con un ADMIN.
 2. Pegar el `accessToken` del backend en **Authorize**.
 3. Ejecutar `POST /api/admin/storage/test` con **Try it out** y seleccionar un
    JPEG, PNG, WEBP o PDF en el campo `file`.
@@ -501,6 +519,8 @@ src/main/resources/
   db/migration/V4__crear_contenido_institucional.sql
   db/migration/V5__alinear_cms_con_maqueta.sql
   db/migration/V6__integrar_publicaciones_meta.sql
+  db/migration/V7__proteger_tablas_cms.sql
+  db/migration/V8__crear_roles_panel.sql
 src/test/java/ar/edu/ifts2/
   contenido/ContenidoIntegrationTest.java, ContenidoSinStorageIntegrationTest.java
   contenido/MaquetaIntegrationTest.java, MaquetaSinStorageIntegrationTest.java
