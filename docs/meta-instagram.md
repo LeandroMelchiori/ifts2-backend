@@ -37,15 +37,77 @@ y rotar cualquier credencial institucional que se haya distribuido de esa manera
 ### Ciclo de la credencial
 
 La emision/rotacion de la credencial de Facebook Login queda como operacion externa
-del administrador de la app Meta. Este backend NO implementa OAuth, intercambio de
-tokens ni refresh automatico, y no usa el endpoint de refresh de Instagram Login.
-No es correcto presentar ambos flujos como intercambiables.
+del administrador de la app Meta. Este backend NO implementa OAuth interactivo ni
+recibe tokens desde el frontend. El token vive solo en variables de entorno del
+servidor (`META_ACCESS_TOKEN` en Render).
 
-Antes de produccion, el responsable de Meta debe confirmar el tipo de token,
-permisos, vencimiento y procedimiento de renovacion de la app institucional.
-Actualizar `META_ACCESS_TOKEN` y reiniciar/redeployar cuando corresponda. Un error
-Graph 190 devuelve 503 con mensaje controlado; el feed persistido sigue disponible.
-No se persisten tokens en las tablas del CMS ni se reciben desde el frontend.
+#### Intercambio manual de un User token
+
+1. En [Meta for Developers](https://developers.facebook.com/) abrí la app y el
+   **Graph API Explorer**.
+2. Generá un **User token** corto con permisos tipicos:
+   `pages_show_list`, `pages_read_engagement`, `instagram_basic`
+   (ajustá a lo que Meta muestre vigente para Instagram Graph).
+3. El script `scripts/exchange-meta-token.ps1`, separado del PR #1 de Carlos,
+   intercambia un **User token de Facebook Login**. No usar un Page token ni un
+   token de Instagram Login como entrada. Confirmar la version habilitada para
+   la app; el script no elige una por defecto. App ID y App Secret corresponden
+   a esa misma app, no necesariamente a las credenciales de Instagram Login.
+
+En un equipo privado con PowerShell 7, desde la raiz del repositorio:
+
+```powershell
+$env:META_APP_ID = Read-Host 'App ID de Facebook Login'
+$env:META_API_VERSION = Read-Host 'Version Graph habilitada (vN.N)'
+$env:META_APP_SECRET = Read-Host 'App Secret' -MaskInput
+$env:META_SHORT_TOKEN = Read-Host 'User token corto' -MaskInput
+try {
+    .\scripts\exchange-meta-token.ps1 -CopyToClipboard
+} finally {
+    Remove-Item Env:META_APP_SECRET, Env:META_SHORT_TOKEN -ErrorAction SilentlyContinue
+}
+```
+
+El script no imprime tokens ni respuestas de error del proveedor. Requiere
+`-CopyToClipboard` y copia la credencial al portapapeles local. Desactivar historial
+y sincronizacion del portapapeles antes de usarlo; pegar en Render y limpiarlo con
+`Set-Clipboard -Value ''`. No ejecutarlo desde CI, una sesion grabada o compartida.
+El proceso necesita los secretos en memoria; no es un almacen de credenciales.
+
+La duracion se obtiene de `expires_in` cuando esta presente; no asumir 60 dias
+exactos ni una renovacion automatica. Confirmar vigencia, permisos y acceso a la
+cuenta institucional en las herramientas de Meta. Esto no obtiene un Page token.
+
+4. En Render → servicio `ifts2-backend` → Environment, seteá:
+
+| Variable | Valor |
+| --- | --- |
+| `META_ENABLED` | `true` |
+| `META_API_VERSION` | Version `vN.N` habilitada para la app, la misma usada en el intercambio |
+| `META_ACCOUNT_ID` | ID numerico de la cuenta IG profesional |
+| `META_ACCESS_TOKEN` | el `access_token` long-lived del paso 3 |
+
+5. Guardá y redeployá / reiniciá el servicio.
+
+No pegues el token en el chat, PRs ni `.env` del front (`VITE_*`). Si alguna vez
+estuvo en el navegador, **rotá** el token en Meta y cargá solo el nuevo en Render.
+
+Antes de produccion, el responsable de Meta debe confirmar tipo de token,
+permisos, vencimiento y procedimiento de renovacion. No equiparar la vigencia de
+User tokens con Page tokens ni prometer que estos ultimos nunca se invalidan.
+Un error Graph 190 devuelve 503 controlado; el feed persistido sigue disponible.
+
+El helper es una herramienta local: no agrega variables obligatorias al backend,
+no cambia Render por si mismo y no agrega refresh automatico a Spring Boot.
+Antes de usarlo con una cuenta real, revisar las guias oficiales de
+[tokens de Facebook Login](https://developers.facebook.com/docs/facebook-login/guides/access-tokens/get-long-lived/)
+y [Instagram con Facebook Login](https://developers.facebook.com/docs/instagram-platform/instagram-api-with-facebook-login/get-started/).
+Los tests del helper simulan Meta y el portapapeles; queda pendiente validar el
+intercambio real con el responsable de la app. Ejecutar los tests locales con:
+
+```powershell
+pwsh -NoProfile -File scripts/tests/Exchange-MetaToken.Tests.ps1
+```
 
 ## Endpoints
 
